@@ -1,0 +1,240 @@
+html,body{
+    display: flex;
+    width: 100%;
+    height: 100%;
+    padding: 0rem 0.625rem 0rem 0rem;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1875rem;
+    margin:0;
+    background:#FAFAFA;
+}
+header{
+    position: absolute;
+    justify-content:flex-end;
+    padding: 0;
+    width: 73.31rem;
+    height: 8.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: left;
+    border-radius: 0rem 0rem 1.25rem 1.25rem;
+    background: #FFF;
+    box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+
+    
+}
+#headerDiv1{
+    justify-self:flex-start;
+    width:73.31rem;
+    height:2.56rem;
+    background:#FF0405;
+}
+#headerDiv2{
+    height:5.19rem;
+    display: inline-flex;
+    padding: 0.925rem;
+    padding-left:2.2rem;
+    align-items: flex-end;
+    gap: 1.25rem;
+}
+
+#headerLogo{
+    color: #FF0405;
+    font-family: 'Noto Sans KR';
+    font-size: 2.5rem;
+    font-style: normal;
+    font-weight: 500;
+    line-height: normal;
+    margin:0;
+}
+#headerTitle{
+    color: #000;
+    font-family: 'Noto Sans KR';
+    font-size: 2.5rem;
+    font-style: normal;
+    font-weight: 600;
+    line-height: normal;
+    padding-right: 5.3rem;
+    margin:0;
+}
+nav{
+    display: flex;
+    align-items: flex-start;
+    gap: 6.625rem;
+}
+p{  
+    font-family:'Noto Sans KR';
+    font-size:1rem;
+    margin:0;
+}
+
+#mainDiv{
+    display:flex;
+    flex-direction:row;
+    padding-left:5rem;
+    padding-top:3rem;
+    width: 52rem;
+    height: 31rem;
+    padding-bottom:3rem;
+    flex-shrink: 0;
+    border-radius: 1.25rem;
+    background: #FFF;
+    box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+    
+}
+#mainInvisible{
+    display:flex;
+    flex-direction:row;
+    margin-top: 14rem;
+    margin-bottom:5rem;
+    height:min-content;
+    gap:1rem;
+}
+#videoDiv{
+    width:fit-content;
+}
+#videoControls{
+    display:flex;
+    flex-direction: row;
+    align-items:center;
+    gap:1rem;
+    padding-left:1rem;
+}
+#rightAlign{
+    margin-left:auto;
+}
+input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      appearance: none;
+      margin: 0;
+    }
+input[type="number"] {
+    -moz-appearance: textfield;
+  }
+
+  #clipsMainDiv{
+    display:flex;
+    flex-direction:column;
+    width: 14.4375rem;
+    height: 37.0625rem;
+    flex-shrink: 0;
+    border-radius: 1.25rem;
+    background: #FFF;
+    box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+    align-items:center;
+  }
+  #clipsDiv{
+    width:12.25rem;
+    height:auto;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    margin-top:2rem;
+    gap:0.5rem;
+    overflow-y:auto;
+    overflow-x:hidden;
+    margin-left:1rem;
+  }
+#secondsInput{
+    border-radius: 0.9375rem;
+    background: #FFF;
+    box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25) inset, 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+    height:2.5rem;
+    width: 3rem;
+    font-family: 'Noto Sans KR';
+    font-size: 1rem;
+    font-style:normal;
+    font-weight: 500;
+    line-height: normal;
+    border:none;
+    padding-left:0.4rem;
+}
+#secondsButton{
+    width: 7rem;
+    height: 2.5rem;
+    flex-shrink: 0;
+    border-radius: 0.875rem;
+    border: 2px solid #FF0405;
+    background: #FFF;
+    box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+
+    color: #000;
+    font-family: 'Noto Sans KR';
+    font-size: 1rem;
+    font-style: normal;
+    font-weight: 800;
+    line-height: normal;
+}
+
+#makeClipButton{
+    width: 8.125rem;
+    height: 2.5rem;
+    flex-shrink: 0;
+    border-radius: 0.875rem;
+    border: 1px solid #FF0405;
+    background: #FF0405;
+    box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+
+    color: #FFF;
+    font-family: 'Noto Sans KR';
+    font-size: 1rem;
+    font-style: normal;
+    font-weight: 800;
+    line-height: normal;
+}
+#addInfluencerH2{
+    width:27rem;
+    color: #000;
+    font-family: 'Noto Sans KR';
+    font-size: 1.875rem;
+    font-weight:600;
+    font-style:normal;
+    line-height: normal;
+    margin:3rem;
+    margin-top:1rem;
+}
+.clipContainer{
+    display:flex;
+    flex-direction:column;
+    width:11.25rem;
+    align-items: center;
+}
+.clips{
+    width:9.6875rem;
+    height:auto;
+}
+.clipSpan{
+    color: #000;
+    font-family: 'Noto Sans KR';
+    font-size: 0.75rem;
+    font-style: normal;
+    font-weight: 300;
+    line-height: normal;
+}
+.spinner {
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    width: 3rem;
+    height: 3rem;
+    animation: spin 1s linear infinite;
+    position: absolute; /* Change to relative */
+    margin:auto;
+    top: 29rem;
+    left: 50%;
+    margin-left:-11rem;
+    z-index: 999; /* Ensure the spinner appears above other elements */
+    display: block; /* 초기에는 숨깁니다. */
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+
+
+
+

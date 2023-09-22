@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.6.0/lib/p5.js"></script>
+    <link rel="stylesheet" type="text/css" href="main.css">
+    <meta charset="utf-8" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600&family=Oswald&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <header>
+        <div id="headerDiv1"></div>
+        <div id="headerDiv2">
+            <div>
+                <h1 id = 'headerLogo'>로고</h1>
+            </div>
+            <div>
+                <h1 id='headerTitle'>Linfluencer Web Tool</h1>
+            </div>
+            <nav>
+                <p>Capture Review</p>
+                <p>Product Review</p>
+            </nav>
+        </div>
+        
+    </header>
+    <main>
+      <div id="findVideoDiv">
+        <h2 id="findVideoH3">YouTube 동영상 불러오기</h2>
+
+        <div id="videoFormDiv">
+            <form id="videoForm">
+                <div id="videoInputsDiv">
+                  <div id="linkInputDiv">
+                    <input type="text" id="linkInput" placeholder="동영상 링크를 입력하세요">
+                    
+                    <button class="clear-button" id="linkAutomizeButton">auto</button>
+                  </div>
+                    <div id="bottomInputDiv">
+                        <div id = "creatorInputDiv">
+                          <input type="text" id="creatorInput" placeholder="크리에이터를 입력하세요">
+                          <button class = "clear-button" id="creatorButton">✔</button>
+                        </div>
+                        <input type="text" id="videoNameInput" placeholder="동영상 이름을 입력하세요">
+                    </div>
+                </div>
+                <button id="submitVideoButton">입력하기</button>
+            </form>
+            <div id="loading-spinner" class="spinner"></div>
+        </div>
+      </div>
+    </main>
+       
+    <script src="main.js"></script>
+  </body>
+</html>

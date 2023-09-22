@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.6.0/lib/p5.js"></script>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <meta charset="utf-8" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600&family=Oswald&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <header>
+        <div id="headerDiv1"></div>
+        <div id="headerDiv2">
+            <div>
+                <h1 id = 'headerLogo'>로고</h1>
+            </div>
+            <div>
+                <h1 id='headerTitle'>Linfluencer Web Tool</h1>
+            </div>
+            <nav>
+                <p>Capture Review</p>
+                <p>Product Review</p>
+            </nav>
+        </div>
+        
+    </header>
+    <main>
+      
+      <div id="addInfluencerDiv">
+        <h2 id="addInfluencerH2">인플루언서 추가하기[Auto]</h2>
+
+        <div id="influencerFormGrid">
+          <span id="channel_name_span"class="influencer_spans">채널명</span>
+          <input type="text" id="channel_name_input" class="influencer_inputs">
+
+          <span id="channel_description_span"class="influencer_spans">채널 설명</span>
+          <input type="text" id="channel_description_input" class="influencer_inputs">
+            
+          <span id="channel_link_span"class="influencer_spans">채널 링크</span>
+          <input type="text" id="channel_link_input" class="influencer_inputs">
+            
+          <span id="channel_ID_span"class="influencer_spans">채널 ID</span>  
+          <input type="text" id="channel_ID_input" class="influencer_inputs">
+
+          <span id="profile_pic_span"class="influencer_spans">프로필 사진</span>
+          <div id="profilePicDiv"></div>
+            
+          <span id="banner_pic_span"class="influencer_spans">배너 사진</span> 
+          <div id="bannerPicDiv"></div>
+               
+          <span id="instagram_span"class="influencer_spans">Instagram</span> 
+          <input type="text" id="instagram_input" class="influencer_inputs">
+            
+          <span id="email_span"class="influencer_spans">Email</span>  
+          <input type="text" id="email_input" class="influencer_inputs">
+            
+          <span id="link1_span"class="influencer_spans">Link1</span>
+          <div class="link_input_div">
+            <select class="linkTypeSelect">
+              <option value="TikTok">TikTok</option>
+              <option value="네이버 블로그">네이버 블로그</option>
+              <option value="네이버 카페">네이버 카페</option>
+              <option value="Twitter">Twitter</option>
+              <option value="Facebook">Facebook</option>
+              <option value="YouTube">YouTube</option>
+              <option value="LinkedIn">LinkedIn</option>
+              <option value="Other">Other</option>
+            </select>
+            <input type="text"  class="influencer_inputs">
+
+          </div>
+          
+               
+          <span id="link2_span"class="influencer_spans">Link2</span> 
+          <div class="link_input_div">
+            <select class="linkTypeSelect">
+              <option value="TikTok">TikTok</option>
+              <option value="네이버 블로그">네이버 블로그</option>
+              <option value="Twitter">Twitter</option>
+              <option value="Facebook">Facebook</option>
+              <option value="YouTube">YouTube</option>
+              <option value="LinkedIn">LinkedIn</option>
+              <option value="Other">Other</option>
+            </select>
+            <input type="text"  class="influencer_inputs">
+
+          </div> 
+
+        </div>
+        <button id="saveButton">저장하기</button>
+      </div>
+    </main>
+       
+    <script src="add_creator.js"></script>
+  </body>
+</html>

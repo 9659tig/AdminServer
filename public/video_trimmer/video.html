@@ -1,0 +1,59 @@
+<html lang="en">
+  <head>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.6.0/lib/p5.js"></script>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <meta charset="utf-8" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600&family=Oswald&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous"/>
+  </head>
+  <body>
+    <header>
+        <div id="headerDiv1"></div>
+        <div id="headerDiv2">
+            <div>
+                <h1 id = 'headerLogo'>로고</h1>
+            </div>
+            <div>
+                <h1 id='headerTitle'>Linfluencer Web Tool</h1>
+            </div>
+            <nav>
+                <p>Capture Review</p>
+                <p>Product Review</p>
+            </nav>
+        </div>
+        
+    </header>
+    <main>
+        <div id="mainInvisible">
+            <div id="mainDiv">
+                <div id="videoDiv">
+                    <div id="cnvDiv">
+                        <div id="loading-spinner" class="spinner"></div>
+                    </div>
+                    <div id="videoControls">
+                        <i id="playpauseIcon" class="fas fa-play"></i>
+                        <span id="timeSpan">00:00/00:00</span>
+                        <div id="rightAlign">
+                            <input type="number" id="secondsInput">
+                            <button id="secondsButton">초 설정하기</button>
+                            <button id="makeClipButton">Clip 생성하기</button>
+                        </div>
+                    </div>
+                </div>
+                
+                
+            </div>
+            <div id="clipsMainDiv">
+                <div id="clipsDiv">
+                    
+                </div>
+            </div>
+        </div>
+        
+    </main>
+       
+    <script src="video.js"></script>
+  </body>
+</html>

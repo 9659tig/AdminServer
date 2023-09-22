@@ -1,0 +1,199 @@
+html,body{
+    display: flex;
+    width: 100%;
+    height: 100%;
+    padding: 0rem 0.625rem 0rem 0rem;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1875rem;
+    margin:0;
+    background:#FAFAFA;
+}
+header{
+    position: absolute;
+    justify-content:flex-end;
+    padding: 0;
+    width: 73.31rem;
+    height: 8.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: left;
+    border-radius: 0rem 0rem 1.25rem 1.25rem;
+    background: #FFF;
+    box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+
+    
+}
+#headerDiv1{
+    justify-self:flex-start;
+    width:73.31rem;
+    height:2.56rem;
+    background:#FF0405;
+}
+#headerDiv2{
+    height:5.19rem;
+    display: inline-flex;
+    padding: 0.925rem;
+    padding-left:2.2rem;
+    align-items: flex-end;
+    gap: 1.25rem;
+}
+
+#headerLogo{
+    color: #FF0405;
+    font-family: 'Noto Sans KR';
+    font-size: 2.5rem;
+    font-style: normal;
+    font-weight: 500;
+    line-height: normal;
+    margin:0;
+}
+#headerTitle{
+    color: #000;
+    font-family: 'Noto Sans KR';
+    font-size: 2.5rem;
+    font-style: normal;
+    font-weight: 600;
+    line-height: normal;
+    padding-right: 5.3rem;
+    margin:0;
+}
+nav{
+    display: flex;
+    align-items: flex-start;
+    gap: 6.625rem;
+}
+p{  
+    font-family:'Noto Sans KR';
+    font-size:1rem;
+    margin:0;
+}
+
+#addInfluencerDiv{
+    display:flex;
+    flex-direction:column;
+    padding-left:6rem;
+    padding-top:3rem;
+    margin-top: 14rem;
+    width: 63.6875rem;
+    height: auto;
+    padding-bottom:3rem;
+    flex-shrink: 0;
+    border-radius: 1.25rem;
+    background: #FFF;
+    box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+    margin-bottom:5rem;
+}
+#addInfluencerH2{
+    width:27rem;
+    color: #000;
+    font-family: 'Noto Sans KR';
+    font-size: 1.875rem;
+    font-weight:600;
+    font-style:normal;
+    line-height: normal;
+    margin:3rem;
+    margin-top:1rem;
+}
+#influencerFormGrid{
+    display:grid;
+    grid-template-columns: 1fr 5fr;
+    grid-row-gap:1rem;
+}
+#influencerFormDiv{
+    display:flex;
+    flex-direction: row;
+}
+#labelsDiv{
+    display:flex;
+    flex-direction:column;
+    gap: 0.9375rem;
+    width:7.875rem;
+}
+#inputsDiv{
+    display:flex;
+    flex-direction:column;
+    gap:0.9375rem;
+}
+
+.influencer_inputs{
+    border-radius: 0.9375rem;
+    background: #FFF;
+    box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25) inset, 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+    width:27.15rem;
+    font-family: 'Noto Sans KR';
+    font-size: 1rem;
+    font-style:normal;
+    font-weight: 500;
+    line-height: normal;
+    border:none;
+    padding-left:0.8rem;
+    height:2.375rem;
+}
+.link_input_div{
+    display:flex;
+    width:27.95rem;
+    gap:1rem;
+}
+select {
+    border-radius: 0.9375rem;
+    background: #FFF;
+    box-shadow: 0px 1px 1px 0px rgba(0, 0, 0, 0.25) inset, 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+    font-family: 'Noto Sans KR';
+    font-size: 1rem;
+    font-style: normal;
+    font-weight: 500;
+    line-height: normal;
+    border: none;
+    height: 2.375rem;
+    padding-left: 0.8rem;
+}
+
+.link_input_div input{
+    width:100%;
+}
+.influencer_spans{
+    display:flex;
+    color: #000;
+    font-family: 'Noto Sans KR';
+    font-size: 1.125rem;
+    font-style: normal;
+    font-weight: 400;
+    line-height: normal;
+    justify-content:flex-start;
+    align-items: center;
+}
+
+#influencer_name_span{
+    height: 2.5rem;
+
+}
+#channel_name_span{
+    height: 2.5rem;
+}
+#channel_link_span{
+    height: 2.5rem;
+}
+#channel_ID_span{
+    height: 2.5rem;
+}
+
+#saveButton{
+    margin-top:2rem;
+    width: 8.1875rem;
+    height: 4.25rem;
+    flex-shrink: 0;
+    border-radius: 1.25rem;
+    border: 1px solid #FF0405;
+    background: #FF0405;
+    box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+    box-shadow: 0px -4px 4px 0px rgba(0, 0, 0, 0.25) inset, 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+    color: #FFF;
+    font-family: 'Noto Sans KR';
+    font-size: 1.25rem;
+    font-style: normal;
+    font-weight: 800;
+    line-height: normal;
+    align-self:flex-end;
+    margin-right:5rem;
+}
