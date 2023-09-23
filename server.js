@@ -2,9 +2,11 @@ const express = require('express');
 const app = express();
 const port = 3004;
 const fs = require('fs');
+const bodyParser = require('body-parser');
 
 app.use(express.static('public'));
 app.use(express.urlencoded( {extended : false } ));
+app.use(bodyParser.json());
 
 const influencersRouter = require('./routers/influencers');
 app.use('/influencers', influencersRouter);

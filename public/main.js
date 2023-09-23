@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded',function(){
         const videoName = videoNameInput.value;
 
         if(creatorButton.textContent === "✔"){
-            window.location.href=  `video_trimmer/video.html?videoUrl=${encodeURIComponent(link)}&influencer=${encodeURIComponent(influencer)}&videoName=${encodeURIComponent(videoName)}`;
+            window.location.href=  `video_trimmer/video.html?channelID=${channelID}&videoUrl=${encodeURIComponent(link)}&influencer=${encodeURIComponent(influencer)}&videoName=${encodeURIComponent(videoName)}`;
         }
     }
 })

@@ -3,11 +3,10 @@ const router = express.Router();
 const ytdl = require('ytdl-core');
 const { getChannelInfo } = require('../api/youtubeapi');
 const { createClip } = require('../api/clipcreator');
-const fs = require('fs');
 const docClient = require('../config/dynamo')
 const {PutItemCommand, QueryCommand } = require("@aws-sdk/client-dynamodb");
 
-// 동영상 링크 등록 (auto 버튼)
+// 동영상 링크 정보 가져오기 (auto 버튼)
 router.get('/videos', async (req, res) => {
     const videoUrl = decodeURIComponent(req.query.videoUrl);
     try {
@@ -47,7 +46,7 @@ router.get('/videos', async (req, res) => {
     }
 });
 
-// 채널 ID 등록 (+버튼)
+// 채널 ID 정보 가져오기 (+버튼)
 router.get('/channel', async (req, res) => {
     const channelId = decodeURIComponent(req.query.channelID);
     try{
@@ -98,22 +97,29 @@ router.post('/info', async (req, res) => {
             res.status(500).send({ error: 'DynamoDB에 데이터 저장 중 오류가 발생했습니다.' });
         }
     }
-});
+})
 
 // 클립 생성
-router.get('/clip', async (req, res) => {
+router.post('/clip', async (req, res) => {
     try {
-        const startTime = req.query.startTime;
-        const endTime = req.query.endTime;
-        const videoUrl = 'https://taewons3.s3.ap-northeast-2.amazonaws.com/' + req.query.videoSrc;
-        const clipLoc = decodeURIComponent(req.query.name);
+        console.log(req.body);
+        console.log(req.query);
+        const startTime = req.body.startTime;
+        const endTime = req.body.endTime;
+        const videoUrl = 'https://taewons3.s3.ap-northeast-2.amazonaws.com/' + req.body.videoSrc;
+        const clipLoc = req.body.name;
+        const channelID = req.body.channelId;
 
-        const response = await createClip(videoUrl, startTime, endTime, clipLoc);
-        res.send({ response });
+        const response = await createClip(videoUrl, startTime, endTime, clipLoc, channelID);
+        if (response) {
+            res.send({ success: true });
+        } else {
+            console.error('Clip creation failed.');
+            res.status(500).send({ error: '클립 생성에 실패했습니다.' });
+        }
     } catch (err) {
-        console.error("========server error=========");
         console.error(err);
-        res.status(500).send({ error: '서버 오류가 발생했습니다.' });
+        res.status(500).send({ error: 'Server Error' });
     }
 });
 

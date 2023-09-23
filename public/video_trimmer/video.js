@@ -30,6 +30,7 @@ function checkUrlAvailability(url) {
 const queryString = window.location.search;
 const urlParams = new URLSearchParams(queryString);
 const encodedUrl = urlParams.get("videoUrl");
+const channelID = urlParams.get('channelID')
 const decodedInfluencer = decodeURIComponent(urlParams.get("influencer"));
 const decodedVideoName = decodeURIComponent(urlParams.get("videoName"));
 const directoryName = decodedInfluencer + '/' + decodedVideoName;
@@ -38,7 +39,7 @@ const directoryName = decodedInfluencer + '/' + decodedVideoName;
 const URL = `https://taewons3.s3.ap-northeast-2.amazonaws.com/${encodeURIComponent(directoryName)}.mp4`;
 
 const loadingSpinner = document.getElementById('loading-spinner');
-        
+
 fetch(URL) //initially check if video is already downloaded on s3
     .then(response => {
         if(response.ok)
@@ -136,23 +137,36 @@ document.addEventListener('DOMContentLoaded', function () {
 
         console.log('directoryName: ', directoryName);
         const URL = encodeURIComponent(directoryName + '.mp4');
-        console.log('https://taewons3.s3.ap-northeast-2.amazonaws.com/' + URL);
-        fetch(`/clip?startTime=${clipStartTime}&endTime=${clipEndTime}&videoSrc=${encodeURIComponent(URL)}&name=${encodeURIComponent(directoryName + '/' + clipCount)}`)
-            .then(response => response.text())
-            .then(data => {
-                console.log(data);
-                console.log('https://taewons3.s3.ap-northeast-2.amazonaws.com/' + encodeURIComponent(directoryName) + '/' + clipCount + '.mp4');
 
-                checkClips('https://taewons3.s3.ap-northeast-2.amazonaws.com/' + encodeURIComponent(directoryName) + '/', 1)
-                    .then((clips) => {
-                        console.log(`clips : ${clips}`);
-                        loadClips('https://taewons3.s3.ap-northeast-2.amazonaws.com/' + encodeURIComponent(directoryName) + '/', clips);
-                    })
-                    .catch((error) => {
-                        console.error(`Failed to access URL: ${encodedUrl}`, error);
-                    });
-            });
+        const clipData = {
+            startTime: clipStartTime,
+            endTime: clipEndTime,
+            videoSrc: URL,
+            channelId: channelID,
+            name: decodedVideoName
+        };
 
+        fetch('/influencers/clip', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(clipData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data);
+            console.log('https://taewons3.s3.ap-northeast-2.amazonaws.com/' + encodeURIComponent(directoryName) + '/' + clipCount + '.mp4');
+
+            checkClips('https://taewons3.s3.ap-northeast-2.amazonaws.com/' + encodeURIComponent(directoryName) + '/', 1)
+                .then((clips) => {
+                    console.log(`clips : ${clips}`);
+                    loadClips('https://taewons3.s3.ap-northeast-2.amazonaws.com/' + encodeURIComponent(directoryName) + '/', clips);
+                })
+                .catch((error) => {
+                    console.error(`URL 접근 실패: ${encodedUrl}`, error);
+                });
+        });
     }
     makeClipButton.addEventListener('click', makeClip);
     secondsButton.addEventListener('click', setSecond);
@@ -329,7 +343,7 @@ function checkClips(url_till_clipCount, clips) { // check how many clips,, fetch
 }
 
 function loadClips(url_till_clipCount, clipNum, fromBeginning = false) { // load & display clips on right
-    const clipsDiv = document.getElementById('clipsDiv'); 
+    const clipsDiv = document.getElementById('clipsDiv');
 
     if (fromBeginning) {
         for (let i = 0; i < clipNum; i++) {
