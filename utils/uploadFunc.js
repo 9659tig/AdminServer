@@ -3,6 +3,8 @@ const s3Client = require('../config/s3');
 const { Upload } = require('@aws-sdk/lib-storage');
 
 async function uploadClip(fileStream, key) {
+    console.log("==s3==");
+    console.log(key);
     const params = {
         Bucket: S3_ACCESS.BUCKET,
         Body: fileStream,

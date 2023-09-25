@@ -1,16 +1,28 @@
 const express = require('express');
 const router = express.Router();
 const ytdl = require('ytdl-core');
-const { getChannelInfo } = require('../api/youtubeapi');
-const { createClip } = require('../api/clipcreator');
+const { getChannelInfo } = require('../utils/youtubeapi');
+const { createClip } = require('../utils/clipcreator');
 const docClient = require('../config/dynamo')
 const {PutItemCommand, QueryCommand } = require("@aws-sdk/client-dynamodb");
 
 // 동영상 링크 정보 가져오기 (auto 버튼)
+let videoInfo
 router.get('/videos', async (req, res) => {
     const videoUrl = decodeURIComponent(req.query.videoUrl);
     try {
         const info = await ytdl.getInfo(videoUrl);
+        videoInfo = {
+            "videoId" : info.videoDetails.videoId,
+            "uploadDate" : info.videoDetails.uploadDate,
+            "video" : info.videoDetails.embed.iframeUrl,
+            "thumbnail": info.videoDetails.thumbnails[info.videoDetails.thumbnails.length - 2],
+            "videoTitle": info.videoDetails.title
+        }
+        console.log("===videoInfo===");
+        console.log(videoInfo);
+        console.log("===videoDetails===");
+        console.log(info.videoDetails);
         try{
             const params = {
                 TableName: 'Influencers',
@@ -22,6 +34,7 @@ router.get('/videos', async (req, res) => {
             const command = new QueryCommand(params)
             const result = await docClient.send(command)
             if (result.Items.length > 0) {
+                console.log(result.Items);
                 res.send({
                     "name" : info.videoDetails.author.name,
                     "title": info.videoDetails.title,
@@ -102,15 +115,17 @@ router.post('/info', async (req, res) => {
 // 클립 생성
 router.post('/clip', async (req, res) => {
     try {
-        console.log(req.body);
-        console.log(req.query);
+        //console.log(req.body);
+        //console.log(req.query);
+        console.log("=======post-videoInfo======");
+        console.log(videoInfo);
         const startTime = req.body.startTime;
         const endTime = req.body.endTime;
         const videoUrl = 'https://taewons3.s3.ap-northeast-2.amazonaws.com/' + req.body.videoSrc;
         const clipLoc = req.body.name;
         const channelID = req.body.channelId;
 
-        const response = await createClip(videoUrl, startTime, endTime, clipLoc, channelID);
+        const response = await createClip(videoUrl, startTime, endTime, clipLoc, channelID, videoInfo);
         if (response) {
             res.send({ success: true });
         } else {
