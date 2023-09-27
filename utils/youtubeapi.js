@@ -28,9 +28,7 @@ async function getChannelInfo(channelID){
         }
     }
     catch(err){
-        console.log("=========youtubeapi error==========");
-        console.error(err);
-        return 'error occured'
+        throw err
     }
 }
 
