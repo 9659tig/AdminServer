@@ -12,10 +12,10 @@ router.get('/videos', async (req, res) => {
     try {
         const result = await videoInformation(videoUrl)
         videoInfoDetail = result.videoInfoDetail
-        res.send(result.videoInfo)
+        return res.send(result.videoInfo)
     }catch (err) {
         console.error(err);
-        res.status(500).send({
+        return res.status(500).send({
             error: 'DB에러',
             message: '동영상 링크 정보를 가져오지 못했습니다.'
         });
@@ -27,11 +27,11 @@ router.get('/channel', async (req, res) => {
     const channelId = decodeURIComponent(req.query.channelID);
     try{
         const channelData = await getChannelInfo(channelId);
-        res.send(channelData);
+        return res.send(channelData);
     }
     catch(err){
         console.error(err);
-        res.status(500).send({
+        return res.status(500).send({
             error: 'youtube api 에러',
             message: '채널 정보를 가져오지 못했습니다.'
         });
@@ -42,20 +42,22 @@ router.get('/channel', async (req, res) => {
 router.post('/info', async (req, res) => {
     try {
         const data = req.body;
-        if (!data) {
-            res.status(400).send({ error: 'Invalid data format in the request.' });
-            return;
-        }
+        if (!data.channel_ID)
+            return res.status(400).send({ error: '입력 형식 에러', message: 'channel Id값이 없습니다.' });
+        if (!data.channel_link)
+            return res.status(400).send({ error: '입력 형식 에러', message: 'channel Link값이 없습니다.' });
+        if (!data.channel_name)
+            return res.status(400).send({ error: '입력 형식 에러', message: 'channel Name값이 없습니다.' });
         await addInfluencer(data)
-        res.send({ message: 'successful' });
+        return res.send({ message: 'successful' });
     } catch (err) {
         console.log(err);
         if (err.code === 'ValidationException') {
-            res.status(400).send({ error: 'DB에러', message: 'DynamoDB 요청이 잘못되었습니다.' });
+            return res.status(400).send({ error: 'DB에러', message: 'DynamoDB 요청이 잘못되었습니다.' });
         } else if (err.code === 'ResourceNotFoundException') {
-            res.status(404).send({ error: 'DB에러', message: '테이블이 존재하지 않습니다.' });
+            return res.status(404).send({ error: 'DB에러', message: '테이블이 존재하지 않습니다.' });
         } else {
-            res.status(500).send({ error: 'DB에러', message: 'DynamoDB에 데이터 저장 중 오류가 발생했습니다.' });
+            return res.status(500).send({ error: 'DB에러', message: 'DynamoDB에 데이터 저장 중 오류가 발생했습니다.' });
         }
     }
 })
@@ -69,11 +71,11 @@ router.post('/clip', async (req, res) => {
         const channelID = req.body.channelId;
 
         const result = await createClip(videoUrl, startTime, endTime, channelID, videoInfoDetail);
-        if (result) res.send({ success: true });
+        if (result) return res.send({ success: true });
     } catch (err) {
         console.error('Clip creation failed.');
         console.log(err);
-        res.status(500).send({ error: '클립 생성에 실패했습니다.' });
+        return res.status(500).send({ error: '클립 생성에 실패했습니다.' });
     }
 });
 
