@@ -4,10 +4,12 @@ const { getChannelInfo } = require('../utils/youtubeapi');
 const { createClip } = require('../controller/clipcreator');
 const { addInfluencer} = require('../service/influencers')
 const { videoInformation } = require('../controller/videoInfo')
+const { getVideoInfo } = require('../service/videos')
+const { getClipInfo } = require('../service/clips')
 
 // 동영상 링크 정보 가져오기 (auto 버튼)
 let videoInfoDetail
-router.get('/videos', async (req, res) => {
+router.get('/video', async (req, res) => {
     const videoUrl = decodeURIComponent(req.query.videoUrl);
     try {
         const result = await videoInformation(videoUrl)
@@ -48,6 +50,7 @@ router.post('/info', async (req, res) => {
             return res.status(400).send({ error: '입력 형식 에러', message: 'channel Link값이 없습니다.' });
         if (!data.channel_name)
             return res.status(400).send({ error: '입력 형식 에러', message: 'channel Name값이 없습니다.' });
+
         await addInfluencer(data)
         return res.send({ message: 'successful' });
     } catch (err) {
@@ -70,6 +73,15 @@ router.post('/clip', async (req, res) => {
         const videoUrl = 'https://taewons3.s3.ap-northeast-2.amazonaws.com/' + req.body.videoSrc;
         const channelID = req.body.channelId;
 
+        if (!channelID)
+            return res.status(400).send({ error: '입력 형식 에러', message: 'channel Id값이 없습니다.' });
+        if (!startTime)
+            return res.status(400).send({ error: '입력 형식 에러', message: 'startTime값이 없습니다.' });
+        if (!endTime)
+            return res.status(400).send({ error: '입력 형식 에러', message: 'endTime값이 없습니다.' });
+        if (!req.body.videoSrc)
+            return res.status(400).send({ error: '입력 형식 에러', message: 'videoSrc값이 없습니다.' });
+
         const result = await createClip(videoUrl, startTime, endTime, channelID, videoInfoDetail);
         if (result) return res.send({ success: true });
     } catch (err) {
@@ -78,5 +90,35 @@ router.post('/clip', async (req, res) => {
         return res.status(500).send({ error: '클립 생성에 실패했습니다.' });
     }
 });
+
+// 비디오 목록 가져오기
+router.get('/videos', async (req,res)=>{
+    try{
+        const channelId = req.query.channelID;
+        if(!channelId)
+            return res.status(400).send({ error: '입력 형식 에러', message: 'channel Id값이 없습니다.' });
+
+        const videoList = await getVideoInfo(channelId)
+        return res.send(videoList)
+    }catch (err) {
+        console.log(err);
+        return res.status(404).send({ error: 'DB에러', message: '비디오 목록 정보를 가져오지 못했습니다.' });
+    }
+})
+
+// 클립 영상 목록 가져오기
+router.get('/clips', async (req,res)=>{
+    try{
+        const videoId = req.query.videoID;
+        if(!videoId)
+            return res.status(400).send({ error: '입력 형식 에러', message: 'video Id값이 없습니다.' });
+
+        const clipList = await getClipInfo(videoId)
+        return res.send(clipList)
+    }catch (err) {
+        console.log(err);
+        return res.status(404).send({ error: 'DB에러', message: '클립 목록 정보를 가져오지 못했습니다.' });
+    }
+})
 
 module.exports = router;

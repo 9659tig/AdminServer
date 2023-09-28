@@ -54,8 +54,8 @@ async function createClip(src, startTime, endTime, channelID, videoInfo){
       const encodeUrl = encodeURI(uploadedFileUrl)
 
       try{
-        const isVideo = await getVideoInfo(channelID)
-        if (!isVideo){
+        const videoList = await getVideoInfo(channelID)
+        if (videoList.length > 0){
           try{
             await addVideoInfo(channelID, videoInfo)
           }catch(err){

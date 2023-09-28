@@ -13,8 +13,7 @@ async function getVideoInfo(channelID) {
     try{
         const command = new QueryCommand(params)
         const result = await docClient.send(command)
-        if (result.Items.length > 0) return true
-        else return false
+        return result.Items
     }catch(err){
         throw err
     }

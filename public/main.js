@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded',function(){
         const loadingSpinner = document.getElementById('loading-spinner');
         loadingSpinner.style.display = 'block';
 
-        fetch(`/influencers/videos?videoUrl=${encodeURIComponent(link)}`)
+        fetch(`/influencers/video?videoUrl=${encodeURIComponent(link)}`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('서버 응답 오류');

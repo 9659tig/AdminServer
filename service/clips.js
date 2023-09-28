@@ -1,5 +1,5 @@
 const docClient = require('../config/dynamo')
-const {PutItemCommand} = require("@aws-sdk/client-dynamodb");
+const {PutItemCommand, QueryCommand} = require("@aws-sdk/client-dynamodb");
 
 async function addClip(videoId, currentDate, encodeUrl, startTime, endTime) {
     const params = {
@@ -22,6 +22,26 @@ async function addClip(videoId, currentDate, encodeUrl, startTime, endTime) {
     }
 
 }
+
+async function getClipInfo(videoID) {
+    const params = {
+        TableName: 'Clips',
+        KeyConditionExpression: "videoId = :videoId",
+        ExpressionAttributeValues: {
+        ":videoId": { S: videoID }
+        }
+    };
+
+    try{
+        const command = new QueryCommand(params)
+        const result = await docClient.send(command)
+        return result.Items
+    }catch(err){
+        throw err
+    }
+}
+
 module.exports = {
     addClip,
+    getClipInfo
 };
