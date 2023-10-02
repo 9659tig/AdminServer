@@ -6,8 +6,8 @@ async function addClip(videoId, currentDate, encodeUrl, startTime, endTime) {
         TableName: 'Clips',
         Item: {
             videoId: { S: videoId},
-            createDate: { S: currentDate },
             clipLink: { S: encodeUrl },
+            createDate: { S: currentDate },
             startTime: { S: startTime },
             endTime: { S: endTime },
             productId: { S: ''},

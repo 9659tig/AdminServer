@@ -19,16 +19,16 @@ async function getVideoInfo(channelID) {
     }
 }
 
-async function addVideoInfo(channelID, videoInfo) {
+async function addVideoInfo(productInfo) {
     const params = {
-        TableName: 'Videos',
+        TableName: 'Products',
         Item: {
-            channelId: {S: channelID },
-            videoId: { S: videoInfo.videoId},
-            uploadDate: { S: videoInfo.uploadDate },
-            videoThumbnail: {S: videoInfo.thumbnail.url},
-            videoName: { S: videoInfo.videoTitle },
-            viewCount: { S: videoInfo.viewCount},
+            productId: {S: productInfo.id},
+            productLink: { S: productInfo.link},
+            productImages: { S: productInfo.images },
+            productName: {S: productInfo.name},
+            productBrand: { S: productInfo.brand },
+            productPrice: { S: productInfo.price},
         }
     };
     try{
