@@ -43,7 +43,8 @@ interface VideoInfo {
     uploadDate:string;
     thumbnail:string;
     videoTitle:string;
-    viewCount:string ;
+    viewCount:string;
+    videoTag:string;
 }
 async function addVideoInfo(channelID: string, videoInfo: VideoInfo) {
     const params = {
@@ -55,6 +56,7 @@ async function addVideoInfo(channelID: string, videoInfo: VideoInfo) {
             videoThumbnail: {S: videoInfo.thumbnail},
             videoName: { S: videoInfo.videoTitle },
             viewCount: { S: videoInfo.viewCount},
+            videoTag: { S: videoInfo.videoTag},
         }
     };
     try{

@@ -13,6 +13,7 @@ interface VideoInfoDetail {
     thumbnail: string;
     videoTitle: string;
     viewCount: string;
+    videoTag: string;
 }
 // 동영상 링크 정보 가져오기 (auto 버튼)
 let videoInfoDetail: VideoInfoDetail;

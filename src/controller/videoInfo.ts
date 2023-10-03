@@ -12,12 +12,18 @@ async function videoInformation(videoUrl: string){
     const info = await ytdl.getInfo(videoUrl);
     console.log("=====videoInfo=======")
     console.log(info.videoDetails);
+
+    let firstLine = '';
+    if (info.videoDetails.description)
+        firstLine = info.videoDetails.description.split('\n')[0];
+
     const videoInfoDetail = {
         videoId: info.videoDetails.videoId,
         uploadDate: info.videoDetails.uploadDate,
         thumbnail: info.videoDetails.thumbnails[info.videoDetails.thumbnails.length - 2].url,
         videoTitle: info.videoDetails.title,
         viewCount: info.videoDetails.viewCount,
+        videoTag: firstLine
     };
     try{
         const isInfluencer = await getInfluencer(info.videoDetails.author.id);

@@ -14,7 +14,8 @@ interface VideoInfo {
   uploadDate:string;
   thumbnail:string;
   videoTitle:string;
-  viewCount:string ;
+  viewCount:string;
+  videoTag:string;
 }
 
 async function createClip(src: string, startTime: number, endTime: number, channelID: string, videoInfo: VideoInfo): Promise<boolean>{
@@ -74,6 +75,9 @@ async function createClip(src: string, startTime: number, endTime: number, chann
           }catch(err){
             throw err
           }
+        }else{
+          console.log("비디오 정보 존재");
+
         }
       }catch (err) {
         throw err
