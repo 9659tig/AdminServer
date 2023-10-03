@@ -13,9 +13,11 @@ async function videoInformation(videoUrl: string){
     console.log("=====videoInfo=======")
     console.log(info.videoDetails);
 
-    let firstLine = '';
-    if (info.videoDetails.description)
-        firstLine = info.videoDetails.description.split('\n')[0];
+    let HashTag = '';
+    if (info.videoDetails.description){
+        const linesWithHashTag = info.videoDetails.description.split('\n').filter(line => line.includes('#'));
+        if (linesWithHashTag.length > 0) HashTag = linesWithHashTag[0]
+    }
 
     const videoInfoDetail = {
         videoId: info.videoDetails.videoId,
@@ -23,7 +25,7 @@ async function videoInformation(videoUrl: string){
         thumbnail: info.videoDetails.thumbnails[info.videoDetails.thumbnails.length - 2].url,
         videoTitle: info.videoDetails.title,
         viewCount: info.videoDetails.viewCount,
-        videoTag: firstLine
+        videoTag: HashTag
     };
     try{
         const isInfluencer = await getInfluencer(info.videoDetails.author.id);
