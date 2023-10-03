@@ -13,6 +13,12 @@
     "ytdl-core": "^4.11.5"
   },
   "scripts": {
-    "start": "nodemon ./server"
+    "start": "nodemon --exec ts-node src/app.ts"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.18",
+    "@types/fluent-ffmpeg": "^2.1.22",
+    "@types/node": "^20.8.2",
+    "ts-node": "^10.9.1"
   }
 }

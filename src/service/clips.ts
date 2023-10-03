@@ -1,7 +1,9 @@
-const docClient = require('../config/dynamo')
-const {PutItemCommand, QueryCommand} = require("@aws-sdk/client-dynamodb");
+//const docClient = require('../config/dynamo')
+import docClient from '../config/dynamo';
+import { PutItemCommand, QueryCommand } from "@aws-sdk/client-dynamodb";
 
-async function addClip(videoId, currentDate, encodeUrl, startTime, endTime) {
+
+async function addClip(videoId: string, currentDate: string, encodeUrl: string, startTime: string, endTime: string): Promise<void> {
     const params = {
         TableName: 'Clips',
         Item: {
@@ -23,7 +25,7 @@ async function addClip(videoId, currentDate, encodeUrl, startTime, endTime) {
 
 }
 
-async function getClipInfo(videoID) {
+async function getClipInfo(videoID: string) {
     const params = {
         TableName: 'Clips',
         KeyConditionExpression: "videoId = :videoId",
@@ -41,7 +43,7 @@ async function getClipInfo(videoID) {
     }
 }
 
-module.exports = {
+export {
     addClip,
     getClipInfo
 };

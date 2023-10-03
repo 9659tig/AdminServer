@@ -1,18 +1,19 @@
-const express = require('express');
+import express, { Request, Response } from 'express';
+import influencersRouter from './routers/router';
+
 const app = express();
 const port = 3004;
 const fs = require('fs');
 const bodyParser = require('body-parser');
 
-app.use(express.static('public'));
+app.use(express.static('./src/public'));
 app.use(express.urlencoded( {extended : false } ));
 app.use(bodyParser.json());
 
-const influencersRouter = require('./routers/influencers');
 app.use('/influencers', influencersRouter);
 
-app.get('/', async(req,res)=>{
-    fs.readFile('./public/main.html', (err,data)=>{
+app.get('/', async(req: Request,res: Response)=>{
+    fs.readFile('./src/public/main.html', (err: NodeJS.ErrnoException | null, data: Buffer)=>{
         if(err) throw err;
 
         res.writeHead(200,{

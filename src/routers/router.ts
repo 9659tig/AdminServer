@@ -1,16 +1,23 @@
-const express = require('express');
-const router = express.Router();
-const { getChannelInfo } = require('../utils/youtubeapi');
-const { createClip } = require('../controller/clipcreator');
-const { addInfluencer} = require('../service/influencers')
-const { videoInformation } = require('../controller/videoInfo')
-const { getVideoInfo } = require('../service/videos')
-const { getClipInfo } = require('../service/clips')
+import express, { Request, Response, Router } from 'express';
+const router: Router = express.Router();
+import { getChannelInfo } from'../utils/youtubeapi';
+import { createClip } from '../controller/clipcreator';
+import { addInfluencer } from '../service/influencers';
+import { videoInformation } from '../controller/videoInfo';
+import { getInfluencerVideos } from '../service/videos';
+import { getClipInfo } from '../service/clips'
 
+interface VideoInfoDetail {
+    videoId: string;
+    uploadDate: string;
+    thumbnail: string;
+    videoTitle: string;
+    viewCount: string;
+}
 // 동영상 링크 정보 가져오기 (auto 버튼)
-let videoInfoDetail
-router.get('/video', async (req, res) => {
-    const videoUrl = decodeURIComponent(req.query.videoUrl);
+let videoInfoDetail: VideoInfoDetail;
+router.get('/video', async (req: Request, res: Response) => {
+    const videoUrl: string = decodeURIComponent(req.query.videoUrl as string);
     try {
         const result = await videoInformation(videoUrl)
         videoInfoDetail = result.videoInfoDetail
@@ -25,8 +32,8 @@ router.get('/video', async (req, res) => {
 });
 
 // 채널 ID 정보 가져오기 (+버튼)
-router.get('/channel', async (req, res) => {
-    const channelId = decodeURIComponent(req.query.channelID);
+router.get('/channel', async (req: Request, res: Response) => {
+    const channelId: string = decodeURIComponent(req.query.channelID as string);
     try{
         const channelData = await getChannelInfo(channelId);
         return res.send(channelData);
@@ -40,21 +47,31 @@ router.get('/channel', async (req, res) => {
     }
 });
 
+function isErrorWithCode(err: unknown): err is { code: string } {
+    return !!err && typeof err === 'object' && 'code' in err;
+}
 // 인플루언서 저장
-router.post('/info', async (req, res) => {
+router.post('/info', async (req: Request, res: Response) => {
     try {
-        const data = req.body;
-        if (!data.channel_ID)
+        const {channel_ID, channel_link, channel_description, pfp_url, banner_url, channel_name, email, instagram, links} = req.body;
+
+        if (!channel_ID)
             return res.status(400).send({ error: '입력 형식 에러', message: 'channel Id값이 없습니다.' });
-        if (!data.channel_link)
+        if (!channel_link)
             return res.status(400).send({ error: '입력 형식 에러', message: 'channel Link값이 없습니다.' });
-        if (!data.channel_name)
+        if (!channel_name)
             return res.status(400).send({ error: '입력 형식 에러', message: 'channel Name값이 없습니다.' });
 
-        await addInfluencer(data)
+        await addInfluencer(channel_ID, channel_link, channel_description, pfp_url, banner_url, channel_name, email, instagram, JSON.parse(links));
         return res.send({ message: 'successful' });
     } catch (err) {
         console.log(err);
+
+        if (!isErrorWithCode(err)) {
+            console.log('Unexpected error:', err);
+            return res.status(500).send({ error: 'Unexpected error', message: 'An unexpected error occurred.' });
+        }
+
         if (err.code === 'ValidationException') {
             return res.status(400).send({ error: 'DB에러', message: 'DynamoDB 요청이 잘못되었습니다.' });
         } else if (err.code === 'ResourceNotFoundException') {
@@ -66,14 +83,12 @@ router.post('/info', async (req, res) => {
 })
 
 // 클립 생성
-router.post('/clip', async (req, res) => {
+router.post('/clip', async (req: Request, res: Response) => {
     try {
-        const startTime = req.body.startTime;
-        const endTime = req.body.endTime;
-        const videoUrl = 'https://taewons3.s3.ap-northeast-2.amazonaws.com/' + req.body.videoSrc;
-        const channelID = req.body.channelId;
+        const { startTime, endTime, videoSrc, channelId } = req.body;
+        const videoUrl = 'https://taewons3.s3.ap-northeast-2.amazonaws.com/' + videoSrc;
 
-        if (!channelID)
+        if (!channelId)
             return res.status(400).send({ error: '입력 형식 에러', message: 'channel Id값이 없습니다.' });
         if (!startTime)
             return res.status(400).send({ error: '입력 형식 에러', message: 'startTime값이 없습니다.' });
@@ -82,7 +97,7 @@ router.post('/clip', async (req, res) => {
         if (!req.body.videoSrc)
             return res.status(400).send({ error: '입력 형식 에러', message: 'videoSrc값이 없습니다.' });
 
-        const result = await createClip(videoUrl, startTime, endTime, channelID, videoInfoDetail);
+        const result = await createClip(videoUrl, startTime, endTime, channelId, videoInfoDetail);
         if (result) return res.send({ success: true });
     } catch (err) {
         console.error('Clip creation failed.');
@@ -92,13 +107,16 @@ router.post('/clip', async (req, res) => {
 });
 
 // 비디오 목록 가져오기
-router.get('/videos', async (req,res)=>{
+router.get('/videos', async (req: Request, res: Response)=>{
     try{
         const channelId = req.query.channelID;
         if(!channelId)
             return res.status(400).send({ error: '입력 형식 에러', message: 'channel Id값이 없습니다.' });
+        if (typeof channelId !== 'string') {
+            return res.status(400).send({ error: '입력 형식 에러', message: 'channel Id값이 잘못되었습니다.' });
+        }
 
-        const videoList = await getVideoInfo(channelId)
+        const videoList = await getInfluencerVideos(channelId)
         return res.send(videoList)
     }catch (err) {
         console.log(err);
@@ -107,11 +125,14 @@ router.get('/videos', async (req,res)=>{
 })
 
 // 클립 영상 목록 가져오기
-router.get('/clips', async (req,res)=>{
+router.get('/clips', async (req: Request, res: Response)=>{
     try{
         const videoId = req.query.videoID;
         if(!videoId)
             return res.status(400).send({ error: '입력 형식 에러', message: 'video Id값이 없습니다.' });
+        if (typeof videoId !== 'string') {
+            return res.status(400).send({ error: '입력 형식 에러', message: 'video Id값이 잘못되었습니다.' });
+        }
 
         const clipList = await getClipInfo(videoId)
         return res.send(clipList)
@@ -122,7 +143,7 @@ router.get('/clips', async (req,res)=>{
 })
 
 //상품 정보 등록
-router.post('/products', async (req,res)=>{
+router.post('/products', async (req: Request, res: Response)=>{
     try{
         /*
         1. 클립 영상에 등장하는 상품 라벨 분석해서 s3에저장
@@ -163,4 +184,4 @@ router.post('/products', async (req,res)=>{
     }
 })
 
-module.exports = router;
+export default router;

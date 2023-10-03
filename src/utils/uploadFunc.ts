@@ -1,8 +1,9 @@
-const { S3_ACCESS } = require('../config/secret');
-const s3Client = require('../config/s3');
-const { Upload } = require('@aws-sdk/lib-storage');
+import { S3_ACCESS } from '../config/secret';
+import { s3Client } from '../config/s3';
+import { Upload } from '@aws-sdk/lib-storage';
+import { Readable } from 'stream';
 
-async function uploadClip(fileStream, key) {
+async function uploadClip(fileStream: Readable, key: string): Promise<boolean> {
     console.log("==s3==");
     console.log(key);
     const params = {
@@ -23,14 +24,14 @@ async function uploadClip(fileStream, key) {
 
     try{
         await uploadS3.done();
-        return 'success';
+        return true;
     }catch(err){
         console.log(err);
         throw err
     }
 }
 
-module.exports = {
-    uploadClip,
+export {
+    uploadClip
 };
 

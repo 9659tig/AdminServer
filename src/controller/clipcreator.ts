@@ -1,22 +1,33 @@
-const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
-const ffmpeg = require('fluent-ffmpeg'); //video handling package(to clip videos)
-const randomID = Math.floor(Math.random()*100000);
-const mp4OutputFilePath = `${randomID}.mp4`; //file path to download clip locally(temporary)
-const fs = require('fs');
-const {uploadClip} = require('../utils/uploadFunc')
-const {S3_ACCESS} = require('../config/secret');
-const moment = require('moment-timezone');
-const {getVideoInfo, addVideoInfo} = require('../service/videos')
-const {addClip} = require('../service/clips')
+//const ffmpeg = require('fluent-ffmpeg'); //video handling package(to clip videos)
 
-async function createClip(src, startTime, endTime, channelID, videoInfo){
+import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
+import ffmpeg from 'fluent-ffmpeg';
+import fs from 'fs';
+import moment from 'moment-timezone';
+import { uploadClip } from '../utils/uploadFunc'
+import { S3_ACCESS } from '../config/secret';
+import { getVideoInfo, addVideoInfo } from '../service/videos'
+import { addClip } from '../service/clips'
+
+interface VideoInfo {
+  videoId:string;
+  uploadDate:string;
+  thumbnail:string;
+  videoTitle:string;
+  viewCount:string ;
+}
+
+async function createClip(src: string, startTime: number, endTime: number, channelID: string, videoInfo: VideoInfo): Promise<boolean>{
+  const randomID = Math.floor(Math.random()*100000);
+  const mp4OutputFilePath = `${randomID}.mp4`; //file path to download clip locally(temporary)
+
   ffmpeg.setFfmpegPath(ffmpegInstaller.path);
   try{
-    await new Promise((resolve, reject)=>{
+    await new Promise<void>((resolve, reject)=>{
       ffmpeg(src)
       .inputOptions([
-        '-ss', startTime, // Start time in seconds
-        '-t', endTime - startTime, // Duration in seconds
+        '-ss', startTime.toString(), // Start time in seconds
+        '-t', (endTime - startTime).toString(), // Duration in seconds
       ])
       .output(mp4OutputFilePath)
       .format('mp4')
@@ -54,8 +65,10 @@ async function createClip(src, startTime, endTime, channelID, videoInfo){
       const encodeUrl = encodeURI(uploadedFileUrl)
 
       try{
-        const videoList = await getVideoInfo(channelID)
-        if (videoList.length > 0){
+        const videoList = await getVideoInfo(channelID, videoInfo.videoId)
+        console.log(videoList);
+
+        if (videoList && videoList.length === 0){
           try{
             await addVideoInfo(channelID, videoInfo)
           }catch(err){
@@ -82,4 +95,4 @@ async function createClip(src, startTime, endTime, channelID, videoInfo){
   }
 }
 
-exports.createClip = createClip;
+export {createClip};

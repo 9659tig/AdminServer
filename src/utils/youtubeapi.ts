@@ -1,14 +1,13 @@
-const {google} = require('googleapis'); // google 객체 가져와 YouTube Data Api 호출
-require('dotenv').config(); // 환경변수 로드 -> Google Api 키 가져옴
+import { google } from 'googleapis'; // google 객체 가져와 YouTube Data Api 호출
+import { GOOGLE_API_KEY } from '../config/secret';
 
-const {GOOGLE_API_KEY} = require('../config/secret')
 const youtube = google.youtube({
     version: 'v3',
     auth: GOOGLE_API_KEY,
 }); // => google.youtube 객체 생성하여 YouTUbe Api 사용
 
 // 특정 YouTube 채널의 정보를 가져오는 기능을 수행
-async function getChannelInfo(channelID){
+async function getChannelInfo(channelID: string){
     try {
         // youTube API의 channels.list 메서드를 호출하여 채널 정보를 가져옴
         const result = await youtube.channels.list({
@@ -18,18 +17,16 @@ async function getChannelInfo(channelID){
             // brandingSettings : 채널 아이콘, 배경 이미지, 채널 커버 아트 등의 브랜딩 관련 이미지 URL 및 기타 브랜딩 관련 설정
             part: 'snippet, statistics, contentDetails, brandingSettings',
             id: channelID //youtube channel ID
-        })
+        } as any)
 
-        const channelData = result.data.items[0];
-        if(channelData){
-            return channelData;
-        }else{
+        if (result.data.items && result.data.items[0])
+            return result.data.items[0]
+        else
             return 'channel not found';
-        }
     }
     catch(err){
         throw err
     }
 }
 
-exports.getChannelInfo = getChannelInfo;
+export {getChannelInfo};
