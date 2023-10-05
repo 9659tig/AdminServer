@@ -67,7 +67,6 @@ async function createClip(src: string, startTime: number, endTime: number, chann
 
       try{
         const videoList = await getVideoInfo(channelID, videoInfo.videoId)
-        console.log(videoList);
 
         if (videoList && videoList.length === 0){
           try{
@@ -77,7 +76,6 @@ async function createClip(src: string, startTime: number, endTime: number, chann
           }
         }else{
           console.log("비디오 정보 존재");
-
         }
       }catch (err) {
         throw err

@@ -146,7 +146,7 @@ document.addEventListener('DOMContentLoaded', function () {
             name: decodedVideoName
         };
 
-        fetch('/influencers/clip', {
+        fetch('/clip', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

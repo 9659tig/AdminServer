@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import influencersRouter from './routers/router';
+import router from './routers/router';
 
 const app = express();
 const port = 3004;
@@ -9,8 +9,7 @@ const bodyParser = require('body-parser');
 app.use(express.static('./src/public'));
 app.use(express.urlencoded( {extended : false } ));
 app.use(bodyParser.json());
-
-app.use('/influencers', influencersRouter);
+app.use(router)
 
 app.get('/', async(req: Request,res: Response)=>{
     fs.readFile('./src/public/main.html', (err: NodeJS.ErrnoException | null, data: Buffer)=>{

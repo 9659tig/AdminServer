@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const saveButton = document.getElementById('saveButton');
 
     if(urlParams.get("influencer_id")){
-        fetch('/influencers/channel?channelID='+urlParams.get("influencer_id"))
+        fetch('/channel?channelID='+urlParams.get("influencer_id"))
             .then(response => response.json())
             .then(data => {
                 console.log(data);
@@ -67,7 +67,7 @@ function saveValues(){
 
 
 
-    fetch(`/influencers/info?channel_name=${encodeURIComponent(channel_name)}`, {
+    fetch(`/influencer?channel_name=${encodeURIComponent(channel_name)}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded', // URL-encoded 형식으로 변경

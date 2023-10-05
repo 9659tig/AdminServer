@@ -7,7 +7,7 @@ const youtube = google.youtube({
 }); // => google.youtube 객체 생성하여 YouTUbe Api 사용
 
 // 특정 YouTube 채널의 정보를 가져오는 기능을 수행
-async function getChannelInfo(channelID: string){
+async function getYoutubeChannelInfo(channelID: string){
     try {
         // youTube API의 channels.list 메서드를 호출하여 채널 정보를 가져옴
         const result = await youtube.channels.list({
@@ -29,4 +29,4 @@ async function getChannelInfo(channelID: string){
     }
 }
 
-export {getChannelInfo};
+export {getYoutubeChannelInfo};
