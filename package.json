@@ -16,7 +16,7 @@
   },
   "scripts": {
     "start": "nodemon --exec ts-node src/app.ts",
-    "deploy": "npx pm2 start src/app.ts -n linkle --interpreter ./node_modules/.bin/ts-node"
+    "deploy": "npx pm2 start src/app.ts -n linkle"
   },
   "devDependencies": {
     "@types/express": "^4.17.18",
