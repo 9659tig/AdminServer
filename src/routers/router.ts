@@ -24,5 +24,7 @@ router.get('/clips', ClipCtrl.getClipList)
 router.get('/products', ProductCtrl.getProductImgs)
 // 구글 이미지 서치 정보 가져오기
 router.get('/product', ProductCtrl.getProductSearchInfo)
+// chatGpt 상품 정보 가져오기
+router.get('/productInfo', ProductCtrl.getProductGptInfo)
 
 export default router;

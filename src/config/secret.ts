@@ -15,8 +15,11 @@ const DYNAMO_ACCESS = {
 
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY
 
+const CHATGPT_API_KEY = process.env.OPENAI_API_KEY;
+
 export {
     S3_ACCESS,
     GOOGLE_API_KEY,
-    DYNAMO_ACCESS
+    DYNAMO_ACCESS,
+    CHATGPT_API_KEY
 };

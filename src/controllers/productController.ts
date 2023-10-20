@@ -1,6 +1,7 @@
 import { Request, Response } from 'express'
 import { listImageFilesInBucket } from '../utils/getS3Images'
 import chromium from 'chrome-aws-lambda';
+import chatGPT from '../config/chatGpt';
 
 export const getProductImgs = async(req: Request, res: Response) =>{
     const {channelID, videoID, createDate} = req.query
@@ -82,5 +83,22 @@ export const getProductSearchInfo = async(req: Request, res: Response) => {
     } catch(err){
         console.error("An error occurred while scraping the webpage:", err);
         return res.status(500).send({ error:'크롤링 에러', message:'웹 페이지 스크래핑 중 오류가 발생했습니다.' });
+    }
+}
+
+export const getProductGptInfo = async(req: Request, res: Response) => {
+    try{
+        const products = req.body
+
+        let text: String = ''
+        for(let i=1; i<6; i++){
+            if (products['text'+i])
+            text += i + '.' + products['text'+i] + ', '
+        }
+        const response = await chatGPT(text+'\n 이 정보들로부터 하나의 상품명을 추출해줘. 2가지 이상의 상품이 존재할 경우 먼저 언급된 상품, 더 자주 언급된 상품으로 추출해줘.');
+        res.send(response);
+    }catch(err){
+        console.log(err);
+        return res.status(500).send({ error:'gpt 에러', message:'gpt로 정보를 불러오는 도중 오류가 발생했습니다.' });
     }
 }
