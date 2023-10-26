@@ -2,6 +2,8 @@ import { Request, Response } from 'express'
 import { listImageFilesInBucket } from '../utils/getS3Images'
 import chromium from 'chrome-aws-lambda';
 import chatGPT from '../config/chatGpt';
+import { generateHmac } from '../utils/generateHmac';
+import { addProduct } from '../service/products';
 
 export const getProductImgs = async(req: Request, res: Response) =>{
     const {channelID, videoID, createDate} = req.query
@@ -74,7 +76,7 @@ export const getProductSearchInfo = async(req: Request, res: Response) => {
                     return {text:a.textContent,imgsource:a.src,url:a.href};
                 }, [col,row]);
                 products.push(product);
-                console.log(col,row,product.text,product.imgsource,product.url);
+                //console.log(col,row,product.text,product.imgsource,product.url);
             }
         }
         await browser.close();
@@ -93,12 +95,80 @@ export const getProductGptInfo = async(req: Request, res: Response) => {
         let text: String = ''
         for(let i=1; i<6; i++){
             if (products['text'+i])
-            text += i + '.' + products['text'+i] + ', '
+                text += i + '.' + products['text'+i] + ', '
         }
         const response = await chatGPT(text+'\n 이 정보들로부터 하나의 상품명을 추출해줘. 2가지 이상의 상품이 존재할 경우 먼저 언급된 상품, 더 자주 언급된 상품으로 추출해줘.');
         res.send(response);
     }catch(err){
         console.log(err);
         return res.status(500).send({ error:'gpt 에러', message:'gpt로 정보를 불러오는 도중 오류가 발생했습니다.' });
+    }
+}
+
+export const generateHMAC = async(req: Request, res: Response)=>{
+    const {method, url} = req.body
+    if(!method || !url)
+        return res.status(400).send({ error: '입력 형식 에러', message: 'method 또는 url 값이 정의되지 않았습니다.' });
+    try{
+        const HMAC = await generateHmac(method, url);
+        res.send(HMAC)
+    }catch(err){
+        console.log(err);
+        return res.status(500).send({ error:'HMAC 생성 에러', message:'HMAC를 생성하는 도중 오류가 발생했습니다.' });
+    }
+}
+
+export const getProduct = async (req: Request, res: Response)=>{
+    const {cahnnelId, productLink} = req.body;
+    if(!cahnnelId)
+        return res.status(400).send({ error: '입력 형식 에러', message: 'channel Id값이 없습니다.' });
+
+    if(!productLink)
+        return res.status(400).send({ error: '입력 형식 에러', message: 'productLink값이 없습니다.' });
+
+}
+
+function isErrorWithCode(err: unknown): err is { code: string } {
+    return !!err && typeof err === 'object' && 'code' in err;
+}
+
+export const addNewProduct = async(req: Request, res: Response)=>{
+    const {clipLink, productLink, productDeepLink, productImages, productName, productBrand, productPrice, category, channelId} = req.body;
+    if(!channelId)
+        return res.status(400).send({ error: '입력 형식 에러', message: 'channel Id값이 없습니다.' });
+    if(!clipLink)
+        return res.status(400).send({ error: '입력 형식 에러', message: 'clipLink값이 없습니다.' });
+    if(!productLink)
+        return res.status(400).send({ error: '입력 형식 에러', message: 'productLink값이 없습니다.' });
+    if(!productDeepLink)
+        return res.status(400).send({ error: '입력 형식 에러', message: 'productDeepLink값이 없습니다.' });
+    if(!productImages)
+        return res.status(400).send({ error: '입력 형식 에러', message: 'productImages값이 없습니다.' });
+    if(!productName)
+        return res.status(400).send({ error: '입력 형식 에러', message: 'productName값이 없습니다.' });
+    if(!productBrand)
+        return res.status(400).send({ error: '입력 형식 에러', message: 'productBrand값이 없습니다.' });
+    if(!productPrice)
+        return res.status(400).send({ error: '입력 형식 에러', message: 'productPrice값이 없습니다.' });
+    if(!category)
+        return res.status(400).send({ error: '입력 형식 에러', message: 'category값이 없습니다.' });
+    try{
+        await addProduct(clipLink, productLink, productDeepLink, productImages, productName, productBrand, productPrice, category, channelId);
+        res.send({ success: true });
+    }catch(err){
+        console.log(err);
+
+        if (!isErrorWithCode(err)) {
+            console.log('Unexpected error:', err);
+            return res.status(500).send({ error: 'Unexpected error', message: 'An unexpected error occurred.' });
+        }
+
+        if (err.code === 'ValidationException') {
+            return res.status(400).send({ error: 'DB에러', message: 'DynamoDB 요청이 잘못되었습니다.' });
+        } else if (err.code === 'ResourceNotFoundException') {
+            return res.status(404).send({ error: 'DB에러', message: '테이블이 존재하지 않습니다.' });
+        } else {
+            return res.status(500).send({ error: 'DB에러', message: 'DynamoDB에 데이터 저장 중 오류가 발생했습니다.' });
+        }
     }
 }

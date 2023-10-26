@@ -17,9 +17,15 @@ const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY
 
 const CHATGPT_API_KEY = process.env.OPENAI_API_KEY;
 
+const COUPANG_ACCESS = {
+    KEY: process.env.COUPANG_ACCESS_KEY,
+    SECRET_KEY: process.env.COUPANG_SECRET_KEY
+}
+
 export {
     S3_ACCESS,
     GOOGLE_API_KEY,
     DYNAMO_ACCESS,
-    CHATGPT_API_KEY
+    CHATGPT_API_KEY,
+    COUPANG_ACCESS
 };

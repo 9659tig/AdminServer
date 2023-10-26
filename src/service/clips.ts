@@ -12,7 +12,7 @@ async function addClip(videoId: string, currentDate: string, encodeUrl: string, 
             createDate: { S: currentDate },
             startTime: { S: startTime },
             endTime: { S: endTime },
-            productId: { S: ''},
+            //productId: { S: ''},
         }
     };
 

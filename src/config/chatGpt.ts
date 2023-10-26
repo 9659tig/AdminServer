@@ -1,15 +1,5 @@
-const {CHATGPT_API_KEY} = require('./secret')
-/*
-const { Configuration, OpenAIApi } = require("openai");
-
-const configiration = new Configuration({
-  apiKey: CHATGPT_API_KEY,
-});
-
-const openai = new OpenAIApi(configiration);
-*/
-
 import OpenAI from 'openai';
+const {CHATGPT_API_KEY} = require('./secret')
 
 const openai = new OpenAI({
   apiKey: CHATGPT_API_KEY,

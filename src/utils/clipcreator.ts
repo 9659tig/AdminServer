@@ -48,7 +48,7 @@ async function createClip(src: string, startTime: number, endTime: number, chann
       const koreanTime = moment().tz('Asia/Seoul');
       const currentDate = koreanTime.toISOString();
 
-      console.log(videoInfo);
+      //console.log(videoInfo);
       const key = `${channelID}/${videoInfo.videoId}/${currentDate}.mp4`;
 
       const mp4File = fs.createReadStream(mp4OutputFilePath); //reads created Clip

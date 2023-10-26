@@ -26,5 +26,9 @@ router.get('/products', ProductCtrl.getProductImgs)
 router.get('/product', ProductCtrl.getProductSearchInfo)
 // chatGpt 상품 정보 가져오기
 router.get('/productInfo', ProductCtrl.getProductGptInfo)
+// hmacgenerator
+router.post('/productInfo/coupangHmac', ProductCtrl.generateHMAC)
+// 상품 정보 저장
+router.post('/productInfo', ProductCtrl.addNewProduct)
 
 export default router;

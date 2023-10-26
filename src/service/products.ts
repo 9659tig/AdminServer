@@ -1,12 +1,12 @@
 import docClient from '../config/dynamo';
 import { PutItemCommand, QueryCommand } from "@aws-sdk/client-dynamodb";
 
-async function getProductInfo(productId: string) {
+async function getProductInfo(clipLink: string) {
     const params = {
-        TableName: 'Videos',
-        KeyConditionExpression: "productId = :productId",
+        TableName: 'Products',
+        KeyConditionExpression: "clipLink = :clipLink",
         ExpressionAttributeValues: {
-        ":productId": { S: productId }
+        ":clipLink": { S: clipLink }
         }
     };
 
@@ -18,17 +18,23 @@ async function getProductInfo(productId: string) {
         throw err
     }
 }
-/*
-async function addVideoInfo(productInfo) {
+
+async function addProduct(clipLink: string, link: string, deeplink: string, images: string, name: string, brand: string, price: string, category: string, channelId: string) {
     const params = {
         TableName: 'Products',
         Item: {
-            productId: {S: productInfo.id},
-            productLink: { S: productInfo.link},
-            productImages: { S: productInfo.images },
-            productName: {S: productInfo.name},
-            productBrand: { S: productInfo.brand },
-            productPrice: { S: productInfo.price},
+            clipLink: { S: clipLink },
+            productLink: { S: link },
+            productDeepLink: { S: deeplink },
+            productImages: { S: images },
+            productName: { S: name },
+            productBrand: { S: brand },
+            category: { S: category },
+            channelId: { S: channelId },
+            productPrice: { N: price },
+            views: { N: '0'},
+            purchases: { N: '0'}
+
         }
     };
     try{
@@ -39,8 +45,8 @@ async function addVideoInfo(productInfo) {
     }
 
 }
-*/
+
 export{
     getProductInfo,
-    //addVideoInfo,
+    addProduct,
 };
