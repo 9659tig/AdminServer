@@ -3,7 +3,8 @@ import { listImageFilesInBucket } from '../utils/getS3Images'
 import chromium from 'chrome-aws-lambda';
 import chatGPT from '../config/chatGpt';
 import { generateHmac } from '../utils/generateHmac';
-import { addProduct } from '../service/products';
+import { addProduct, getProductInfo } from '../service/products';
+import { List } from 'aws-sdk/lib/model';
 
 export const getProductImgs = async(req: Request, res: Response) =>{
     const {channelID, videoID, createDate} = req.query
@@ -170,5 +171,26 @@ export const addNewProduct = async(req: Request, res: Response)=>{
         } else {
             return res.status(500).send({ error: 'DB에러', message: 'DynamoDB에 데이터 저장 중 오류가 발생했습니다.' });
         }
+    }
+}
+
+export const checkProductExist = async(req: Request, res: Response) =>{
+    const productLink: string = encodeURI(req.query.productLink as string);
+    const channelId: string = req.query.channelId as string
+
+    if(!channelId)
+        return res.status(400).send({ error: '입력 형식 에러', message: 'channel Id값이 없습니다.' });
+    if(!productLink)
+        return res.status(400).send({ error: '입력 형식 에러', message: 'productLink값이 없습니다.' });
+
+    try{
+        const products = await getProductInfo(productLink, channelId);
+        if (products?.length)
+            return res.send({ exist: true });
+        else
+            return res.send({ exist: false });
+    }catch(err){
+        console.log(err);
+        return res.status(404).send({ error: 'DB에러', message: '상품 정보를 가져오지 못했습니다.' });
     }
 }

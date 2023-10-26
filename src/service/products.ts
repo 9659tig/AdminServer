@@ -1,23 +1,28 @@
 import docClient from '../config/dynamo';
 import { PutItemCommand, QueryCommand } from "@aws-sdk/client-dynamodb";
 
-async function getProductInfo(clipLink: string) {
+async function getProductInfo(productLink: string, channelId: string) {
     const params = {
         TableName: 'Products',
-        KeyConditionExpression: "clipLink = :clipLink",
+        IndexName: 'productLink-channelId-index',
+        KeyConditionExpression: "productLink = :productLink and channelId = :channelId",
         ExpressionAttributeValues: {
-        ":clipLink": { S: clipLink }
+            ":productLink": { S: productLink },
+            ":channelId": { S: channelId }
         }
     };
 
-    try{
-        const command = new QueryCommand(params)
-        const result = await docClient.send(command)
-        return result.Items
-    }catch(err){
-        throw err
+    try {
+        const command = new QueryCommand(params);
+        const result = await docClient.send(command);
+        console.log(result.Items);
+
+        return result.Items;
+    } catch (err) {
+        throw err;
     }
 }
+
 
 async function addProduct(clipLink: string, link: string, deeplink: string, images: string, name: string, brand: string, price: string, category: string, channelId: string) {
     const params = {

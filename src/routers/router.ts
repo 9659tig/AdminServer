@@ -24,11 +24,13 @@ router.get('/clips', ClipCtrl.getClipList)
 router.get('/products', ProductCtrl.getProductImgs)
 // 구글 이미지 서치 정보 가져오기
 router.get('/product', ProductCtrl.getProductSearchInfo)
-// chatGpt 상품 정보 가져오기
-router.get('/productInfo', ProductCtrl.getProductGptInfo)
+// chatGpt 상품명 가져오기
+router.get('/productName', ProductCtrl.getProductGptInfo)
 // hmacgenerator
 router.post('/productInfo/coupangHmac', ProductCtrl.generateHMAC)
 // 상품 정보 저장
 router.post('/productInfo', ProductCtrl.addNewProduct)
+// 상품 존재 여부
+router.get('/productInfo', ProductCtrl.checkProductExist)
 
 export default router;
