@@ -134,8 +134,8 @@ function isErrorWithCode(err: unknown): err is { code: string } {
 }
 
 export const addNewProduct = async(req: Request, res: Response)=>{
-    const {clipLink, productLink, productDeepLink, productImages, productName, productBrand, productPrice, category, channelId} = req.body;
-    if(!channelId)
+    const {clipLink, productLink, productDeepLink, productImages, productName, productBrand, productPrice, category, videoId, categoryUpdate, channelId} = req.body;
+    if(!videoId)
         return res.status(400).send({ error: '입력 형식 에러', message: 'channel Id값이 없습니다.' });
     if(!clipLink)
         return res.status(400).send({ error: '입력 형식 에러', message: 'clipLink값이 없습니다.' });
@@ -153,8 +153,12 @@ export const addNewProduct = async(req: Request, res: Response)=>{
         return res.status(400).send({ error: '입력 형식 에러', message: 'productPrice값이 없습니다.' });
     if(!category)
         return res.status(400).send({ error: '입력 형식 에러', message: 'category값이 없습니다.' });
+    if(categoryUpdate == undefined)
+        return res.status(400).send({ error: '입력 형식 에러', message: 'categoryUpdate값이 없습니다.' });
+    if(!channelId)
+        return res.status(400).send({ error: '입력 형식 에러', message: 'channelId값이 없습니다.' });
     try{
-        await addProduct(clipLink, productLink, productDeepLink, productImages, productName, productBrand, productPrice, category, channelId);
+        await addProduct(clipLink, productLink, productDeepLink, productImages, productName, productBrand, productPrice, category, videoId, categoryUpdate, channelId);
         res.send({ success: true });
     }catch(err){
         console.log(err);
@@ -176,15 +180,15 @@ export const addNewProduct = async(req: Request, res: Response)=>{
 
 export const checkProductExist = async(req: Request, res: Response) =>{
     const productLink: string = encodeURI(req.query.productLink as string);
-    const channelId: string = req.query.channelId as string
+    const videoId: string = req.query.videoId as string
 
-    if(!channelId)
+    if(!videoId)
         return res.status(400).send({ error: '입력 형식 에러', message: 'channel Id값이 없습니다.' });
     if(!productLink)
         return res.status(400).send({ error: '입력 형식 에러', message: 'productLink값이 없습니다.' });
 
     try{
-        const products = await getProductInfo(productLink, channelId);
+        const products = await getProductInfo(productLink, videoId);
         if (products?.length)
             return res.send({ exist: true });
         else

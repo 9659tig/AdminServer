@@ -1,5 +1,5 @@
 import docClient from '../config/dynamo';
-import { PutItemCommand, QueryCommand } from "@aws-sdk/client-dynamodb";
+import { PutItemCommand, QueryCommand, UpdateItemCommand } from "@aws-sdk/client-dynamodb";
 
 async function getInfluencerVideos(channelID: string) {
     const params = {
@@ -71,8 +71,30 @@ async function addVideoInfo(channelID: string, videoInfo: VideoInfo) {
 
 }
 
+async function updateCategory(channelID: string, videoId: string, category: string) {
+    const params = {
+        TableName: 'Videos',
+        Key: {
+            channelId: { S: channelID },
+            videoId: { S: videoId }
+        },
+        UpdateExpression: `SET ${category} = :categoryValue`,
+        ExpressionAttributeValues: {
+            ':categoryValue': { BOOL: true }
+        }
+    };
+
+    try {
+        const command = new UpdateItemCommand(params);
+        await docClient.send(command);
+    } catch (err) {
+        throw err;
+    }
+}
+
 export {
     getInfluencerVideos,
     getVideoInfo,
     addVideoInfo,
+    updateCategory,
 };
