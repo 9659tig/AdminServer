@@ -11,7 +11,7 @@
     "fluent-ffmpeg": "^2.1.2",
     "googleapis": "^126.0.1",
     "moment-timezone": "^0.5.43",
-    "openai": "^3.3.0",
+    "openai": "^4.15.0",
     "puppeteer": "^21.3.6",
     "ytdl-core": "^4.11.5"
   },
