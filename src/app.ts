@@ -22,8 +22,7 @@ app.get('/', async(req: Request,res: Response)=>{
         res.end();
     })
 })
-/*
+
 app.listen(port,()=>{
     console.log('server running on http://localhost:'+port);
 })
-*/
