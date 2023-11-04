@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import router from './routers/router';
 
 const app = express();
-const port = 3004;
+const port = 3000;
 const fs = require('fs');
 const bodyParser = require('body-parser');
 
@@ -22,7 +22,8 @@ app.get('/', async(req: Request,res: Response)=>{
         res.end();
     })
 })
-
+/*
 app.listen(port,()=>{
     console.log('server running on http://localhost:'+port);
 })
+*/

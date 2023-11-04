@@ -16,8 +16,9 @@
     "ytdl-core": "^4.11.5"
   },
   "scripts": {
+    "build": "tsc",
     "start": "nodemon --exec ts-node src/app.ts",
-    "deploy": "npx pm2 start src/app.ts -n linkle"
+    "deploy": "npx pm2 start dist/app.js -n linpl"
   },
   "devDependencies": {
     "@types/express": "^4.17.18",

@@ -4,7 +4,6 @@ import chromium from 'chrome-aws-lambda';
 import chatGPT from '../config/chatGpt';
 import { generateHmac } from '../utils/generateHmac';
 import { addProduct, getProductInfo } from '../service/products';
-import { List } from 'aws-sdk/lib/model';
 
 export const getProductImgs = async(req: Request, res: Response) =>{
     const {channelID, videoID, createDate} = req.query
