@@ -2,14 +2,13 @@ import docClient from '../config/dynamo';
 import { PutItemCommand, QueryCommand } from "@aws-sdk/client-dynamodb";
 import { updateCategory } from '../service/videos'
 
-async function getProductInfo(productLink: string, videoId: string) {
+async function getProductInfo(productLink: string) {
     const params = {
         TableName: 'Products',
-        IndexName: 'productLink-videoId-index',
-        KeyConditionExpression: "productLink = :productLink and videoId = :videoId",
+        IndexName: 'productLink-channelId-index',
+        KeyConditionExpression: "productLink = :productLink",
         ExpressionAttributeValues: {
-            ":productLink": { S: productLink },
-            ":videoId": { S: videoId }
+            ":productLink": { S: productLink }
         }
     };
 
@@ -39,7 +38,6 @@ async function addProduct(clipLink: string, link: string, deeplink: string, imag
             productPrice: { N: price },
             views: { N: '0'},
             purchases: { N: '0'}
-
         }
     };
     try{

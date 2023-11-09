@@ -31,6 +31,6 @@ router.post('/productInfo/coupangHmac', ProductCtrl.generateHMAC)
 // 상품 정보 저장
 router.post('/productInfo', ProductCtrl.addNewProduct)
 // 상품 존재 여부
-router.get('/productInfo', ProductCtrl.checkProductExist)
+router.get('/productInfo/:channelId', ProductCtrl.checkProductExist)
 
 export default router;

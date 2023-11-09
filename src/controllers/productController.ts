@@ -4,6 +4,7 @@ import chromium from 'chrome-aws-lambda';
 import chatGPT from '../config/chatGpt';
 import { generateHmac } from '../utils/generateHmac';
 import { addProduct, getProductInfo } from '../service/products';
+import { i } from 'chart.js/dist/chunks/helpers.core';
 
 export const getProductImgs = async(req: Request, res: Response) =>{
     const {channelID, videoID, createDate} = req.query
@@ -179,19 +180,27 @@ export const addNewProduct = async(req: Request, res: Response)=>{
 
 export const checkProductExist = async(req: Request, res: Response) =>{
     const productLink: string = encodeURI(req.query.productLink as string);
-    const videoId: string = req.query.videoId as string
+    const channelID = req.params.channelId;
 
-    if(!videoId)
-        return res.status(400).send({ error: '입력 형식 에러', message: 'channel Id값이 없습니다.' });
+    if(!channelID)
+        return res.status(400).send({ error: '입력 형식 에러', message: 'channelId값이 없습니다.' });
     if(!productLink)
         return res.status(400).send({ error: '입력 형식 에러', message: 'productLink값이 없습니다.' });
 
     try{
-        const products = await getProductInfo(productLink, videoId);
-        if (products?.length)
-            return res.send({ exist: true });
-        else
+        const products = await getProductInfo(productLink);
+
+        if (!products?.length)
             return res.send({ exist: false });
+
+        const matchedProduct = products.find(product => product.channelId.S === channelID);
+        console.log(matchedProduct);
+
+        if (matchedProduct)
+            return res.send({ exist: true, productImages: products[0].productImages, productDeepLink: matchedProduct.productDeepLink.S});
+        else
+            return res.send({ exist: true, productImages: products[0].productImages, productDeepLink: ""});
+
     }catch(err){
         console.log(err);
         return res.status(404).send({ error: 'DB에러', message: '상품 정보를 가져오지 못했습니다.' });
