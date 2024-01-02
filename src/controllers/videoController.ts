@@ -29,7 +29,7 @@ export const getVideoInfo = async(req: Request, res: Response) => {
 }
 
 export const getVideoList = async(req: Request, res: Response) => {
-    const channelId = req.query.channelID;
+    const channelId = req.params.channelId;
     if(!channelId)
         return res.status(400).send({ error: '입력 형식 에러', message: 'channel Id값이 없습니다.' });
     if (typeof channelId !== 'string')

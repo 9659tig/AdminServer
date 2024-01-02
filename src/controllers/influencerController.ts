@@ -3,7 +3,7 @@ import { getYoutubeChannelInfo } from'../utils/youtubeapi';
 import { addInfluencer } from '../service/influencers';
 
 export const getChannelInfo = async(req: Request, res: Response) => {
-    const channelId: string = decodeURIComponent(req.query.channelID as string);
+    const channelId = req.params.channelId;
     try{
         const channelData = await getYoutubeChannelInfo(channelId);
         return res.send(channelData);
@@ -21,7 +21,7 @@ function isErrorWithCode(err: unknown): err is { code: string } {
     return !!err && typeof err === 'object' && 'code' in err;
 }
 export const addInfluencerInfo = async(req: Request, res: Response) => {
-    const {channel_ID, channel_link, channel_description, pfp_url, banner_url, channel_name, email, instagram, links} = req.body;
+    const {channel_ID, channel_link, channel_description, pfp_url, banner_url, channel_name, email, instagram, links, subscriberCount} = req.body;
     try {
         if (!channel_ID)
             return res.status(400).send({ error: '입력 형식 에러', message: 'channel Id값이 없습니다.' });
@@ -30,7 +30,7 @@ export const addInfluencerInfo = async(req: Request, res: Response) => {
         if (!channel_name)
             return res.status(400).send({ error: '입력 형식 에러', message: 'channel Name값이 없습니다.' });
 
-        await addInfluencer(channel_ID, channel_link, channel_description, pfp_url, banner_url, channel_name, email, instagram, JSON.parse(links));
+        await addInfluencer(channel_ID, channel_link, channel_description, pfp_url, banner_url, channel_name, email, instagram, JSON.parse(links), subscriberCount);
         return res.send({ message: 'successful' });
     } catch (err) {
         console.log(err);

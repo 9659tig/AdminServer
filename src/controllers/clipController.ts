@@ -27,7 +27,7 @@ export const addNewClip = async(req: Request, res: Response) => {
 }
 
 export const getClipList = async(req: Request, res: Response)=>{
-    const videoId = req.query.videoID;
+    const videoId = req.params.videoId;
     if(!videoId)
         return res.status(400).send({ error: '입력 형식 에러', message: 'video Id값이 없습니다.' });
     if (typeof videoId !== 'string')

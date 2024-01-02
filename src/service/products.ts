@@ -22,7 +22,7 @@ async function getProductInfo(productLink: string) {
 }
 
 
-async function addProduct(clipLink: string, link: string, deeplink: string, images: string, name: string, brand: string, price: string, category: string, videoId: string, categoryUpdate: boolean, channelId: string) {
+async function addProduct(clipLink: string, link: string, deeplink: string, images: string, name: string, brand: string, price: string, category: string, videoId: string, categoryUpdate: boolean, channelId: string, meta: string) {
     const params = {
         TableName: 'Products',
         Item: {
@@ -37,7 +37,8 @@ async function addProduct(clipLink: string, link: string, deeplink: string, imag
             channelId: { S: channelId },
             productPrice: { N: price },
             views: { N: '0'},
-            purchases: { N: '0'}
+            purchases: { N: '0'},
+            metaInfo: {S: meta}
         }
     };
     try{

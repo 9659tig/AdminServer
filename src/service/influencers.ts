@@ -20,7 +20,7 @@ async function getInfluencer(channelID: string): Promise<boolean> {
     }
 }
 
-async function addInfluencer(channel_ID: string, channel_link: string, channel_description: string, pfp_url: string, banner_url: string, channel_name: string, email: string, instagram: string, links: Array<{type:string , link:string}>): Promise<boolean> {
+async function addInfluencer(channel_ID: string, channel_link: string, channel_description: string, pfp_url: string, banner_url: string, channel_name: string, email: string, instagram: string, links: Array<{type:string , link:string}>, subscriberCount: number): Promise<boolean> {
     const params = {
         TableName: 'Influencers',
         Item: {
@@ -33,6 +33,7 @@ async function addInfluencer(channel_ID: string, channel_link: string, channel_d
             email: { S: email },
             instagram: { S: instagram },
             links: { L: links.map(link => ({ M: { type: { S: link.type }, link: { S: link.link } } })) },
+            subscriberCount: { N: subscriberCount.toString()}
         },
     };
     try{

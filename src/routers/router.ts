@@ -8,17 +8,17 @@ import * as ProductCtrl from '../controllers/productController'
 // 동영상 링크 정보 가져오기 (auto 버튼)
 router.get('/videoLink', VideoCtrl.getVideoInfo)
 // 비디오 목록 가져오기
-router.get('/videos', VideoCtrl.getVideoList)
+router.get('/videos/:channelId', VideoCtrl.getVideoList)
 
 // 채널 정보 가져오기 (+버튼)
-router.get('/channel', InfluencerCtrl.getChannelInfo)
+router.get('/channel/:channelId', InfluencerCtrl.getChannelInfo)
 // 인플루언서 정보 저장
 router.post('/influencer', InfluencerCtrl.addInfluencerInfo)
 
 // 클립 생성하기
 router.post('/clip', ClipCtrl.addNewClip)
 // 클립 목록 조회
-router.get('/clips', ClipCtrl.getClipList)
+router.get('/clips/:videoId', ClipCtrl.getClipList)
 
 // 클립 영상 상품 이미지들 조회
 router.get('/products', ProductCtrl.getProductImgs)

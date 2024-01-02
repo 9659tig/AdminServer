@@ -4,7 +4,6 @@ import chromium from 'chrome-aws-lambda';
 import chatGPT from '../config/chatGpt';
 import { generateHmac } from '../utils/generateHmac';
 import { addProduct, getProductInfo } from '../service/products';
-import { i } from 'chart.js/dist/chunks/helpers.core';
 
 export const getProductImgs = async(req: Request, res: Response) =>{
     const {channelID, videoID, createDate} = req.query
@@ -134,7 +133,7 @@ function isErrorWithCode(err: unknown): err is { code: string } {
 }
 
 export const addNewProduct = async(req: Request, res: Response)=>{
-    const {clipLink, productLink, productDeepLink, productImages, productName, productBrand, productPrice, category, videoId, categoryUpdate, channelId} = req.body;
+    const {clipLink, productLink, productDeepLink, productImages, productName, productBrand, productPrice, category, videoId, categoryUpdate, channelId, meta} = req.body;
     if(!videoId)
         return res.status(400).send({ error: '입력 형식 에러', message: 'channel Id값이 없습니다.' });
     if(!clipLink)
@@ -158,7 +157,7 @@ export const addNewProduct = async(req: Request, res: Response)=>{
     if(!channelId)
         return res.status(400).send({ error: '입력 형식 에러', message: 'channelId값이 없습니다.' });
     try{
-        await addProduct(clipLink, productLink, productDeepLink, productImages, productName, productBrand, productPrice, category, videoId, categoryUpdate, channelId);
+        await addProduct(clipLink, productLink, productDeepLink, productImages, productName, productBrand, productPrice, category, videoId, categoryUpdate, channelId, meta);
         res.send({ success: true });
     }catch(err){
         console.log(err);

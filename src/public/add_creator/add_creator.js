@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const saveButton = document.getElementById('saveButton');
 
     if(urlParams.get("influencer_id")){
-        fetch('/channel?channelID='+urlParams.get("influencer_id"))
+        fetch('/channel/'+urlParams.get("influencer_id"))
             .then(response => response.json())
             .then(data => {
                 console.log(data);
@@ -64,6 +64,7 @@ function saveValues(){
     channel_object.append('email', email);
     channel_object.append('instagram', instagram);
     channel_object.append('links', JSON.stringify(links));
+    channel_object.append('subscriberCount',475000);
 
 
 

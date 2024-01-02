@@ -22,7 +22,7 @@ async function getYoutubeChannelInfo(channelID: string){
         if (result.data.items && result.data.items[0])
             return result.data.items[0]
         else
-            return 'channel not found';
+            throw new Error('channel not found');
     }
     catch(err){
         throw err
