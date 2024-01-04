@@ -55,7 +55,7 @@ async function addVideoInfo(channelID: string, videoInfo: VideoInfo) {
             uploadDate: { S: videoInfo.uploadDate },
             videoThumbnail: {S: videoInfo.thumbnail},
             videoName: { S: videoInfo.videoTitle },
-            viewCount: { S: videoInfo.viewCount},
+            viewCount: { N: videoInfo.viewCount},
             videoTag: { S: videoInfo.videoTag},
             categoryBag: { BOOL: false},
             categoryClothes: { BOOL: false},
