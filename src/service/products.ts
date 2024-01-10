@@ -35,7 +35,7 @@ async function addProduct(clipLink: string, link: string, deeplink: string, imag
             category: { S: category },
             videoId: { S: videoId },
             channelId: { S: channelId },
-            productPrice: { N: price },
+            productPrice: { N: price},
             views: { N: '0'},
             purchases: { N: '0'},
             metaInfo: {S: meta}

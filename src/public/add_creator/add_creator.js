@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 channel_ID_input.value = data.id;
 
                 const profile_img = document.createElement('img');
-                profile_img.src = data.snippet.thumbnails.default.url;
+                profile_img.src = data.snippet.thumbnails.high.url;
                 document.getElementById('profilePicDiv').appendChild(profile_img);
 
                 const banner_img = document.createElement('img');
