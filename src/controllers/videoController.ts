@@ -9,6 +9,7 @@ interface VideoInfoDetail {
     videoTitle: string;
     viewCount: string;
     videoTag: string;
+    videoTime: string;
 }
 
 export let videoInfoDetail: VideoInfoDetail;

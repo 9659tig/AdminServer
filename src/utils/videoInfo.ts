@@ -10,8 +10,8 @@ interface VideoInfo {
 
 async function videoInformation(videoUrl: string){
     const info = await ytdl.getInfo(videoUrl);
-    //console.log("=====videoInfo=======")
-    //console.log(info.videoDetails);
+    console.log("=====videoInfo=======")
+    console.log(info.videoDetails);
 
     let HashTag = '';
     if (info.videoDetails.description){
@@ -25,7 +25,8 @@ async function videoInformation(videoUrl: string){
         thumbnail: info.videoDetails.thumbnails[info.videoDetails.thumbnails.length - 2].url,
         videoTitle: info.videoDetails.title,
         viewCount: info.videoDetails.viewCount,
-        videoTag: HashTag
+        videoTag: HashTag,
+        videoTime: info.videoDetails.lengthSeconds
     };
     try{
         const isInfluencer = await getInfluencer(info.videoDetails.author.id);

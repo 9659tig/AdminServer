@@ -3,7 +3,7 @@ import docClient from '../config/dynamo';
 import { PutItemCommand, QueryCommand } from "@aws-sdk/client-dynamodb";
 
 
-async function addClip(videoId: string, currentDate: string, encodeUrl: string, startTime: string, endTime: string): Promise<void> {
+async function addClip(videoId: string, currentDate: string, encodeUrl: string, startTime: string, endTime: string, videoTime: string): Promise<void> {
     const params = {
         TableName: 'Clips',
         Item: {
@@ -12,7 +12,7 @@ async function addClip(videoId: string, currentDate: string, encodeUrl: string, 
             createDate: { S: currentDate },
             startTime: { S: startTime },
             endTime: { S: endTime },
-            //productId: { S: ''},
+            videoTime: { S: videoTime},
         }
     };
 

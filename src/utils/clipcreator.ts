@@ -16,6 +16,7 @@ interface VideoInfo {
   videoTitle:string;
   viewCount:string;
   videoTag:string;
+  videoTime: string;
 }
 
 async function createClip(src: string, startTime: number, endTime: number, channelID: string, videoInfo: VideoInfo): Promise<boolean>{
@@ -82,7 +83,7 @@ async function createClip(src: string, startTime: number, endTime: number, chann
       }
 
       try{
-        await addClip(videoInfo.videoId, currentDate, encodeUrl, startTime.toString(), endTime.toString())
+        await addClip(videoInfo.videoId, currentDate, encodeUrl, startTime.toString(), endTime.toString(), videoInfo.videoTime)
         console.log("클립 저장 완료");
       }catch(err){
         throw err
