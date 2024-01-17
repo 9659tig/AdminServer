@@ -26,7 +26,6 @@ async function addInfluencer(channel_ID: string, channel_link: string, channel_d
         TableName: 'Influencers',
         Item: {
             channelId: { S: channel_ID },
-            channelLink: { S: channel_link },
             channelDescription: { S: channel_description },
             channelProfile: { S: pfp_url },
             channelBanner: { S: banner_url },
