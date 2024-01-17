@@ -1,17 +1,11 @@
 import { getInfluencer } from '../service/influencers';
+import { VideoInfo } from '../utils/interfaces/video.interface';
 import ytdl from 'ytdl-core';
-
-interface VideoInfo {
-    name: string;
-    title: string;
-    id: string;
-    exist: boolean;
-}
 
 async function videoInformation(videoUrl: string){
     const info = await ytdl.getInfo(videoUrl);
-    console.log("=====videoInfo=======")
-    console.log(info.videoDetails);
+    //console.log("=====videoInfo=======")
+    //console.log(info.videoDetails);
 
     let HashTag = '';
     if (info.videoDetails.description){

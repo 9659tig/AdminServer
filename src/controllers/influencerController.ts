@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { getYoutubeChannelInfo } from'../utils/youtubeapi';
 import { addInfluencer } from '../service/influencers';
+import { Sns } from '../utils/interfaces/influencer.interface';
 
 export const getChannelInfo = async(req: Request, res: Response) => {
     const channelId = req.params.channelId;
@@ -20,8 +21,9 @@ export const getChannelInfo = async(req: Request, res: Response) => {
 function isErrorWithCode(err: unknown): err is { code: string } {
     return !!err && typeof err === 'object' && 'code' in err;
 }
+
 export const addInfluencerInfo = async(req: Request, res: Response) => {
-    const {channel_ID, channel_link, channel_description, pfp_url, banner_url, channel_name, email, instagram, links, subscriberCount} = req.body;
+    const {channel_ID, channel_link, channel_description, pfp_url, banner_url, channel_name, email, links, subscriberCount} = req.body;
     try {
         if (!channel_ID)
             return res.status(400).send({ error: '입력 형식 에러', message: 'channel Id값이 없습니다.' });
@@ -29,8 +31,17 @@ export const addInfluencerInfo = async(req: Request, res: Response) => {
             return res.status(400).send({ error: '입력 형식 에러', message: 'channel Link값이 없습니다.' });
         if (!channel_name)
             return res.status(400).send({ error: '입력 형식 에러', message: 'channel Name값이 없습니다.' });
+        if (links.length != 5)
+            return res.status(400).send({ error: '입력 형식 에러', message: 'sns 개수가 부족합니다.' });
 
-        await addInfluencer(channel_ID, channel_link, channel_description, pfp_url, banner_url, channel_name, email, instagram, JSON.parse(links), subscriberCount);
+        //네이버, 틱톡, 유튜브, 인스타, 페이스북, 트위터
+        let snsLinks: Sns[] = links;
+        snsLinks.push({
+            type : "youtube",
+            link : channel_link
+        })
+
+        await addInfluencer(channel_ID, channel_link, channel_description, pfp_url, banner_url, channel_name, email, snsLinks, subscriberCount);
         return res.send({ message: 'successful' });
     } catch (err) {
         console.log(err);

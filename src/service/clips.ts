@@ -1,4 +1,3 @@
-//const docClient = require('../config/dynamo')
 import docClient from '../config/dynamo';
 import { PutItemCommand, QueryCommand } from "@aws-sdk/client-dynamodb";
 

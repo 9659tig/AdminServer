@@ -1,16 +1,7 @@
 import { Request, Response } from 'express';
 import { videoInformation } from '../utils/videoInfo';
 import { getInfluencerVideos } from '../service/videos'
-
-interface VideoInfoDetail {
-    videoId: string;
-    uploadDate: string;
-    thumbnail: string;
-    videoTitle: string;
-    viewCount: string;
-    videoTag: string;
-    videoTime: string;
-}
+import { VideoInfoDetail } from '../utils/interfaces/video.interface'
 
 export let videoInfoDetail: VideoInfoDetail;
 
