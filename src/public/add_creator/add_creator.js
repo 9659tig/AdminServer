@@ -63,7 +63,7 @@ function saveValues(){
     channel_object.append('banner_url', banner_url);
     channel_object.append('email', email);
     channel_object.append('instagram', instagram);
-    channel_object.append('links', JSON.stringify(links));
+    //channel_object.append('links', JSON.stringify(links));
     channel_object.append('subscriberCount',475000);
 
 
