@@ -31,6 +31,9 @@
 
 ### 2. 상품 등록
 
+    - 상품 이미지 검색 및 상위 정보 크롤링
+    - 상품명 추출
+
 <br>
 
 ## **α 버전 아키텍처**
@@ -41,11 +44,9 @@
 
 <br>
 
-## **API 설계**
+## **관리자 서버 API**
 
 <br>
-
-![image](https://github.com/user-attachments/assets/8971ad67-b2c9-480b-b78b-a3ca180829d0)
 
 ![image](https://github.com/user-attachments/assets/34c5e3ce-8fb7-4f29-ba86-f9a21b138cc5)
 
@@ -53,13 +54,11 @@
 
 <br>
 
-## **문제 해결 및 개선**
-
-### 상품 정보 추출 자동화
+## **상품 정보 추출 자동화**
 
 - 상품 등록 시 이미지 검색부터 정보 업로드 까지의 과정을 자동화
 - 등록할 상품이 많아졌을 때 관리자의 반복적인 수작업으로 인한 번거로움 해소
 
-![image](https://github.com/user-attachments/assets/a18dc3ae-7e57-4a85-9afb-864e6d51e179)
+![image](https://github.com/user-attachments/assets/5144fef8-3003-4778-b24f-8b9cb399f3c0)
 
 <br>
