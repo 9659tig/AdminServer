@@ -1,5 +1,5 @@
-const {S3_ACCESS} = require('./secret')
-const { S3Client } = require('@aws-sdk/client-s3');
+import { S3Client } from '@aws-sdk/client-s3';
+import { S3_ACCESS } from './secret';
 
 const s3Client = new S3Client({
   region: S3_ACCESS.REGION,

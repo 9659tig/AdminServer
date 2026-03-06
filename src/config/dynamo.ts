@@ -7,6 +7,6 @@ const docClient = new DynamoDBClient({
         accessKeyId: DYNAMO_ACCESS.KEY,
         secretAccessKey: DYNAMO_ACCESS.SECRET_KEY,
     }
-} as any);
+});
 
 export default docClient;

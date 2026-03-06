@@ -1,14 +1,15 @@
-import { google } from 'googleapis'; // google 객체 가져와 YouTube Data Api 호출
 import { GOOGLE_API_KEY } from '../config/secret';
-
-const youtube = google.youtube({
-    version: 'v3',
-    auth: GOOGLE_API_KEY,
-}); // => google.youtube 객체 생성하여 YouTUbe Api 사용
 
 // 특정 YouTube 채널의 정보를 가져오는 기능을 수행
 async function getYoutubeChannelInfo(channelID: string){
     try {
+        // Delay loading googleapis so app startup does not fail on runtime-specific transitive deps.
+        const { google } = await import('googleapis');
+        const youtube = google.youtube({
+            version: 'v3',
+            auth: GOOGLE_API_KEY,
+        });
+
         // youTube API의 channels.list 메서드를 호출하여 채널 정보를 가져옴
         const result = await youtube.channels.list({
             // snippet : YouTube 채널의 기본 정보 -> 채널의 제목, 설명, 공개 날짜, 국가 등

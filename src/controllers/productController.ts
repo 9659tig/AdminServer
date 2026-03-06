@@ -6,34 +6,26 @@ import { generateHmac } from '../utils/generateHmac';
 import { addProduct, getProductInfo } from '../service/products';
 
 export const getProductImgs = async(req: Request, res: Response) =>{
-    const {channelID, videoID, createDate} = req.query
-    if(!channelID)
-        return res.status(400).send({ error: '입력 형식 에러', message: 'channel Id값이 없습니다.' });
-    if (typeof channelID !== 'string')
-        return res.status(400).send({ error: '입력 형식 에러', message: 'channel Id값이 잘못되었습니다.' });
-
-    if(!videoID)
-        return res.status(400).send({ error: '입력 형식 에러', message: 'video Id값이 없습니다.' });
-    if (typeof videoID !== 'string')
-        return res.status(400).send({ error: '입력 형식 에러', message: 'video Id값이 잘못되었습니다.' });
-
-    if(!createDate)
-        return res.status(400).send({ error: '입력 형식 에러', message: 'create Date값이 없습니다.' });
-    if (typeof createDate !== 'string')
-        return res.status(400).send({ error: '입력 형식 에러', message: 'create Date값이 잘못되었습니다.' });
+    const {channelID, videoID, createDate} = req.validated.query as { channelID: string; videoID: string; createDate: string };
 
     try{
-        const images = await listImageFilesInBucket(channelID+'/'+videoID+'/'+createDate)
-        return res.send(images)
+        const images = await listImageFilesInBucket(channelID+'/'+videoID+'/'+createDate);
+        return res.send(images);
     }catch(err){
-        console.log(err);
+        req.log.error({
+            event: 'product_images_failed',
+            err,
+            channelID,
+            videoID,
+            createDate,
+        }, 'product_images_failed');
         return res.status(404).send({ error: 'S3에러', message: '상품 이미지를 가져오지 못했습니다.' });
     }
 }
 
 export const getProductSearchInfo = async(req: Request, res: Response) => {
     try {
-        const fileUrl: string = decodeURIComponent(req.query.link as string);
+        const { link: fileUrl } = req.validated.query as { link: string };
         const link: string ='https://lens.google.com/uploadbyurl?url='+fileUrl+'&hl=ko-KR';
 
         let products: Array<{text:string,imgsource:string,url:string}> = [];
@@ -83,37 +75,39 @@ export const getProductSearchInfo = async(req: Request, res: Response) => {
         res.json(products);
 
     } catch(err){
-        console.error("An error occurred while scraping the webpage:", err);
+        req.log.error({
+            event: 'product_search_failed',
+            err,
+        }, 'product_search_failed');
         return res.status(500).send({ error:'크롤링 에러', message:'웹 페이지 스크래핑 중 오류가 발생했습니다.' });
     }
 }
 
 export const getProductGptInfo = async(req: Request, res: Response) => {
     try{
-        const products = req.body
-
-        let text: String = ''
-        for(let i=1; i<6; i++){
-            if (products['text'+i])
-                text += i + '.' + products['text'+i] + ', '
-        }
+        const { candidates } = req.validated.body as { candidates: string[] };
+        const text = candidates.map((candidate, index) => `${index + 1}.${candidate}`).join(', ');
         const response = await chatGPT(text+'\n 이 정보들로부터 하나의 상품명을 추출해줘. 2가지 이상의 상품이 존재할 경우 먼저 언급된 상품, 더 자주 언급된 상품으로 추출해줘.');
         res.send(response);
     }catch(err){
-        console.log(err);
+        req.log.error({
+            event: 'product_name_generation_failed',
+            err,
+        }, 'product_name_generation_failed');
         return res.status(500).send({ error:'gpt 에러', message:'gpt로 정보를 불러오는 도중 오류가 발생했습니다.' });
     }
 }
 
 export const generateHMAC = async(req: Request, res: Response)=>{
-    const {method, url} = req.body
-    if(!method || !url)
-        return res.status(400).send({ error: '입력 형식 에러', message: 'method 또는 url 값이 정의되지 않았습니다.' });
+    const {method, url} = req.validated.body as { method: string; url: string };
     try{
         const HMAC = await generateHmac(method, url);
-        res.send(HMAC)
+        res.send(HMAC);
     }catch(err){
-        console.log(err);
+        req.log.error({
+            event: 'coupang_hmac_failed',
+            err,
+        }, 'coupang_hmac_failed');
         return res.status(500).send({ error:'HMAC 생성 에러', message:'HMAC를 생성하는 도중 오류가 발생했습니다.' });
     }
 }
@@ -133,37 +127,29 @@ function isErrorWithCode(err: unknown): err is { code: string } {
 }
 
 export const addNewProduct = async(req: Request, res: Response)=>{
-    const {clipLink, productLink, productDeepLink, productImages, productName, productBrand, productPrice, category, videoId, categoryUpdate, channelId, meta} = req.body;
-    if(!videoId)
-        return res.status(400).send({ error: '입력 형식 에러', message: 'channel Id값이 없습니다.' });
-    if(!clipLink)
-        return res.status(400).send({ error: '입력 형식 에러', message: 'clipLink값이 없습니다.' });
-    if(!productLink)
-        return res.status(400).send({ error: '입력 형식 에러', message: 'productLink값이 없습니다.' });
-    if(!productDeepLink)
-        return res.status(400).send({ error: '입력 형식 에러', message: 'productDeepLink값이 없습니다.' });
-    if(!productImages)
-        return res.status(400).send({ error: '입력 형식 에러', message: 'productImages값이 없습니다.' });
-    if(!productName)
-        return res.status(400).send({ error: '입력 형식 에러', message: 'productName값이 없습니다.' });
-    if(!productBrand)
-        return res.status(400).send({ error: '입력 형식 에러', message: 'productBrand값이 없습니다.' });
-    if(!productPrice)
-        return res.status(400).send({ error: '입력 형식 에러', message: 'productPrice값이 없습니다.' });
-    if(!category)
-        return res.status(400).send({ error: '입력 형식 에러', message: 'category값이 없습니다.' });
-    if(categoryUpdate == undefined)
-        return res.status(400).send({ error: '입력 형식 에러', message: 'categoryUpdate값이 없습니다.' });
-    if(!channelId)
-        return res.status(400).send({ error: '입력 형식 에러', message: 'channelId값이 없습니다.' });
+    const {clipLink, productLink, productDeepLink, productImages, productName, productBrand, productPrice, category, videoId, categoryUpdate, channelId, meta} = req.validated.body as {
+        clipLink: string;
+        productLink: string;
+        productDeepLink: string;
+        productImages: string;
+        productName: string;
+        productBrand: string;
+        productPrice: number;
+        category: string;
+        videoId: string;
+        categoryUpdate: boolean;
+        channelId: string;
+        meta: string;
+    };
     try{
-        await addProduct(clipLink, productLink, productDeepLink, productImages, productName, productBrand, productPrice, category, videoId, categoryUpdate, channelId, meta);
+        await addProduct(clipLink, productLink, productDeepLink, productImages, productName, productBrand, productPrice.toString(), category, videoId, categoryUpdate, channelId, meta);
         res.send({ success: true });
     }catch(err){
-        console.log(err);
-
         if (!isErrorWithCode(err)) {
-            console.log('Unexpected error:', err);
+            req.log.error({
+                event: 'add_product_failed_unexpected',
+                err,
+            }, 'add_product_failed_unexpected');
             return res.status(500).send({ error: 'Unexpected error', message: 'An unexpected error occurred.' });
         }
 
@@ -172,28 +158,28 @@ export const addNewProduct = async(req: Request, res: Response)=>{
         } else if (err.code === 'ResourceNotFoundException') {
             return res.status(404).send({ error: 'DB에러', message: '테이블이 존재하지 않습니다.' });
         } else {
+            req.log.error({
+                event: 'add_product_failed',
+                err,
+                channelId,
+                videoId,
+            }, 'add_product_failed');
             return res.status(500).send({ error: 'DB에러', message: 'DynamoDB에 데이터 저장 중 오류가 발생했습니다.' });
         }
     }
 }
 
 export const checkProductExist = async(req: Request, res: Response) =>{
-    const productLink: string = encodeURI(req.query.productLink as string);
-    const channelID = req.params.channelId;
-
-    if(!channelID)
-        return res.status(400).send({ error: '입력 형식 에러', message: 'channelId값이 없습니다.' });
-    if(!productLink)
-        return res.status(400).send({ error: '입력 형식 에러', message: 'productLink값이 없습니다.' });
+    const { productLink } = req.validated.query as { productLink: string };
+    const { channelId: channelID } = req.validated.params as { channelId: string };
 
     try{
-        const products = await getProductInfo(productLink);
+        const products = await getProductInfo(encodeURI(productLink));
 
         if (!products?.length)
             return res.send({ exist: false });
 
         const matchedProduct = products.find(product => product.channelId.S === channelID);
-        console.log(matchedProduct);
 
         if (matchedProduct)
             return res.send({ exist: true, productImages: products[0].productImages, productDeepLink: matchedProduct.productDeepLink.S});
@@ -201,7 +187,12 @@ export const checkProductExist = async(req: Request, res: Response) =>{
             return res.send({ exist: true, productImages: products[0].productImages, productDeepLink: ""});
 
     }catch(err){
-        console.log(err);
+        req.log.error({
+            event: 'product_exist_check_failed',
+            err,
+            channelID,
+            productLink,
+        }, 'product_exist_check_failed');
         return res.status(404).send({ error: 'DB에러', message: '상품 정보를 가져오지 못했습니다.' });
     }
 }

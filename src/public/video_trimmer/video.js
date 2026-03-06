@@ -143,6 +143,7 @@ document.addEventListener('DOMContentLoaded', function () {
             endTime: clipEndTime,
             videoSrc: URL,
             channelId: channelID,
+            videoUrl: encodedUrl,
             name: decodedVideoName
         };
 
