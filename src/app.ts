@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
 import router from './routers/router';
+import agentRouter from './routers/agentRouter';
 import { requestContextMiddleware } from './middleware/requestContext';
 import { validateEnv } from './config/env';
 import { logger } from './config/logger';
@@ -24,6 +25,7 @@ export function createApp() {
     });
 
     app.use(router);
+    app.use('/agent', agentRouter);
 
     if (process.env.NODE_ENV !== 'production') {
         app.get('/', async (req: Request, res: Response) => {
