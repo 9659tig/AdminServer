@@ -1,21 +1,36 @@
-import OpenAI from 'openai';
-const {CHATGPT_API_KEY} = require('./secret')
+import { z } from 'zod';
+import { openAIProvider, OpenAIProvider } from '../agent/providers/llm/OpenAIProvider';
+import { ModelPolicyName } from '../agent/providers/llm/modelPolicy';
 
-async function chatGpt(Content: string) {
-  if (!CHATGPT_API_KEY) {
-    throw new Error('OPENAI_API_KEY is missing');
-  }
+const productNameSchema = z.object({
+  productName: z.string().trim().min(1),
+});
 
-  const openai = new OpenAI({
-    apiKey: CHATGPT_API_KEY,
-  });
-
-  const chatCompletion = await openai.chat.completions.create({
-    model: "gpt-3.5-turbo",
-    messages: [{ role: "user", content: Content }],
-    n: 3
-  });
-  return chatCompletion.choices[0].message.content;
+interface ChatGptOptions {
+  policy?: ModelPolicyName;
 }
+
+const PRODUCT_NAME_SYSTEM_PROMPT = [
+  'You extract exactly one product name from candidate product titles.',
+  'Return JSON only with the shape {"productName":"..."}.',
+  'Choose the first strongly supported product if multiple products appear.',
+].join(' ');
+
+export function createChatGpt(provider: Pick<OpenAIProvider, 'generateObject'> = openAIProvider) {
+  return async (content: string, options: ChatGptOptions = {}) => {
+    const response = await provider.generateObject({
+      policy: options.policy ?? 'mini-default',
+      systemPrompt: PRODUCT_NAME_SYSTEM_PROMPT,
+      userPrompt: content,
+      schema: productNameSchema,
+      temperature: 0.2,
+      maxOutputTokens: 120,
+    });
+
+    return response.object.productName;
+  };
+}
+
+const chatGpt = createChatGpt();
 
 export default chatGpt;
