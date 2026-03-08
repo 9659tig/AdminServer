@@ -4,6 +4,10 @@ export const taskIdParamSchema = z.object({
     taskId: z.string().trim().min(1, 'taskId값이 없습니다.'),
 });
 
+export const evaluationIdParamSchema = z.object({
+    evaluationId: z.string().trim().min(1, 'evaluationId값이 없습니다.'),
+});
+
 const clipContextSchema = z.object({
     clipId: z.string().trim().min(1, 'clipId값이 없습니다.'),
     clipLink: z.string().trim().url().optional(),
@@ -85,4 +89,11 @@ export const reviewTaskSchema = z.object({
             path: ['reason'],
         });
     }
+});
+
+export const dualRunEvaluationSchema = z.object({
+    input: createAgentTaskSchema,
+    goldLabel: z.string().trim().optional(),
+    evaluationName: z.string().trim().optional(),
+    iterations: z.coerce.number().int().min(1).max(10).optional().default(3),
 });

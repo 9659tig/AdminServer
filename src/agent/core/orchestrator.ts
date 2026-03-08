@@ -3,6 +3,9 @@ import { logger } from '../../config/logger';
 import { FeedbackStore, feedbackStore } from '../memory/feedbackStore';
 import { RulePlanner } from '../planner/RulePlanner';
 import { ToolRegistry } from '../tools/toolRegistry';
+import { goldSetStore, GoldSetStore } from '../evaluation/goldSetStore';
+import { sourceScoreStore, SourceScoreStore } from '../evaluation/sourceScoreStore';
+import { buildGoldSetExample, buildTaskEvidenceView, getEvidenceSources, getLearningScoreForReview } from '../evaluation/taskArtifacts';
 import { AgentStepStore, agentStepStore } from './stepStore';
 import { assertTaskTransition } from './stateMachine';
 import { AgentTaskStore, agentTaskStore } from './taskStore';
@@ -26,6 +29,8 @@ export interface OrchestratorDependencies {
     planner: RulePlanner;
     toolRegistry: ToolRegistry;
     feedbackStore: FeedbackStore;
+    goldSetStore: GoldSetStore;
+    sourceScoreStore: SourceScoreStore;
 }
 
 function createDefaultToolRegistry(): ToolRegistry {
@@ -55,6 +60,8 @@ const defaultDependencies: OrchestratorDependencies = {
     planner: new RulePlanner(),
     toolRegistry: createDefaultToolRegistry(),
     feedbackStore,
+    goldSetStore,
+    sourceScoreStore,
 };
 
 export class AgentOrchestrator {
@@ -170,13 +177,38 @@ export class AgentOrchestrator {
         if (!updated) {
             throw new Error('Task not found after review');
         }
+
+        const goldSetExample = buildGoldSetExample({
+            details: updated,
+            payload,
+        });
+        if (goldSetExample) {
+            await this.deps.goldSetStore.add(goldSetExample);
+        }
+
+        const evidenceSources = getEvidenceSources(updated);
+        if (evidenceSources.length) {
+            await this.deps.sourceScoreStore.applyOutcome(evidenceSources, getLearningScoreForReview(payload.action));
+        }
+
         return updated;
+    }
+
+    async getTaskEvidence(taskId: string) {
+        const details = await this.getTaskDetails(taskId);
+        if (!details) {
+            return undefined;
+        }
+
+        return buildTaskEvidenceView(details);
     }
 
     async reset(): Promise<void> {
         await this.deps.taskStore.reset();
         await this.deps.stepStore.reset();
         await this.deps.feedbackStore.reset();
+        await this.deps.goldSetStore.reset();
+        await this.deps.sourceScoreStore.reset();
     }
 
     private async executeTask(taskId: string, fromStepId?: string): Promise<void> {

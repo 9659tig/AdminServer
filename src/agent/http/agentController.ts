@@ -1,13 +1,19 @@
 import { Request, Response } from 'express';
 import { agentOrchestrator, AgentOrchestrator } from '../core/orchestrator';
 import { AgentTaskInput, ReviewPayload } from '../core/types';
+import { DualRunService, dualRunService } from '../evaluation/dualRunService';
+import { GoldSetStore, goldSetStore } from '../evaluation/goldSetStore';
 
 interface AgentControllerDeps {
     orchestrator: AgentOrchestrator;
+    dualRunService: DualRunService;
+    goldSetStore: GoldSetStore;
 }
 
 const defaultDeps: AgentControllerDeps = {
     orchestrator: agentOrchestrator,
+    dualRunService,
+    goldSetStore,
 };
 
 function respondAgentError(req: Request, res: Response, err: unknown): Response {
@@ -68,6 +74,20 @@ export function createAgentController(deps: AgentControllerDeps = defaultDeps) {
                 return respondAgentError(req, res, err);
             }
         },
+        getTaskEvidence: async (req: Request, res: Response) => {
+            try {
+                const { taskId } = req.validated.params as { taskId: string };
+                const evidence = await deps.orchestrator.getTaskEvidence(taskId);
+
+                if (!evidence) {
+                    return res.status(404).json({ error: 'Task not found' });
+                }
+
+                return res.json(evidence);
+            } catch (err) {
+                return respondAgentError(req, res, err);
+            }
+        },
         retryTask: async (req: Request, res: Response) => {
             try {
                 const { taskId } = req.validated.params as { taskId: string };
@@ -89,6 +109,53 @@ export function createAgentController(deps: AgentControllerDeps = defaultDeps) {
                 });
             } catch (err) {
                 return respondAgentError(req, res, err);
+            }
+        },
+        createDualRunEvaluation: async (req: Request, res: Response) => {
+            try {
+                const payload = req.validated.body as {
+                    input: AgentTaskInput;
+                    goldLabel?: string;
+                    evaluationName?: string;
+                    iterations?: number;
+                };
+                const record = await deps.dualRunService.run(payload);
+                return res.status(201).json(record);
+            } catch (err) {
+                return respondAgentError(req, res, err);
+            }
+        },
+        getEvaluation: async (req: Request, res: Response) => {
+            try {
+                const { evaluationId } = req.validated.params as { evaluationId: string };
+                const record = await deps.dualRunService.get(evaluationId);
+
+                if (!record) {
+                    return res.status(404).json({ error: 'Evaluation not found' });
+                }
+
+                return res.json(record);
+            } catch (err) {
+                return respondAgentError(req, res, err);
+            }
+        },
+        getEvaluationSummary: async (_req: Request, res: Response) => {
+            try {
+                const summary = await deps.dualRunService.getSummary();
+                return res.json(summary);
+            } catch (err) {
+                return respondAgentError(_req, res, err);
+            }
+        },
+        listGoldSetExamples: async (_req: Request, res: Response) => {
+            try {
+                const examples = await deps.goldSetStore.list();
+                return res.json({
+                    count: examples.length,
+                    examples,
+                });
+            } catch (err) {
+                return respondAgentError(_req, res, err);
             }
         },
     };

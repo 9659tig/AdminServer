@@ -23,7 +23,8 @@
     "test:phase0": "npm run build && node --test --test-concurrency=1 tests/phase0/*.test.js",
     "test:phase1": "npm run build && node --test --test-concurrency=1 tests/phase1/*.test.js",
     "test:phase2": "npm run build && node --test --test-concurrency=1 tests/phase2/*.test.js",
-    "test:phase3": "npm run build && node --test --test-concurrency=1 tests/phase3/*.test.js"
+    "test:phase3": "npm run build && node --test --test-concurrency=1 tests/phase3/*.test.js",
+    "test:phase4": "npm run build && node --test --test-concurrency=1 tests/phase4/*.test.js"
   },
   "devDependencies": {
     "@types/express": "^4.17.18",
