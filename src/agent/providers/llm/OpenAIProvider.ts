@@ -8,6 +8,7 @@ import {
     LlmGeneratedObject,
     LlmGeneratedText,
     LlmGeneratedTranscription,
+    LlmMessage,
     LlmObjectRequest,
     LlmTextRequest,
     LlmTranscriptionRequest,
@@ -20,8 +21,16 @@ interface OpenAIProviderDeps {
     policyRegistry?: ModelPolicyRegistry;
 }
 
-function buildMessages(request: LlmTextRequest) {
-    const messages: Array<{ role: 'system' | 'user'; content: string }> = [];
+function buildMessages(request: LlmTextRequest): LlmMessage[] {
+    if (request.messages?.length) {
+        return request.messages;
+    }
+
+    if (!request.userPrompt) {
+        throw new Error('LLM request requires either messages or userPrompt');
+    }
+
+    const messages: LlmMessage[] = [];
 
     if (request.systemPrompt) {
         messages.push({ role: 'system', content: request.systemPrompt });
@@ -79,7 +88,7 @@ export class OpenAIProvider {
         const policy = this.requirePolicyMode(request.policy, 'chat');
         const completion = await this.getClient().chat.completions.create({
             model: policy.model,
-            messages: buildMessages(request),
+        messages: buildMessages(request),
             temperature: request.temperature ?? policy.temperature,
             max_tokens: request.maxOutputTokens ?? policy.maxOutputTokens,
         });
@@ -106,7 +115,7 @@ export class OpenAIProvider {
         const policy = this.requirePolicyMode(request.policy, 'chat');
         const completion = await this.getClient().chat.completions.create({
             model: policy.model,
-            messages: buildMessages(request),
+        messages: buildMessages(request),
             temperature: request.temperature ?? policy.temperature,
             max_tokens: request.maxOutputTokens ?? policy.maxOutputTokens,
             response_format: { type: 'json_object' },

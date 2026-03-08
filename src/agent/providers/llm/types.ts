@@ -1,10 +1,31 @@
 import { ZodTypeAny } from 'zod';
 import { ModelPolicy, ModelPolicyName } from './modelPolicy';
 
+export interface LlmTextContentPart {
+    type: 'text';
+    text: string;
+}
+
+export interface LlmImageContentPart {
+    type: 'image_url';
+    image_url: {
+        url: string;
+        detail?: 'low' | 'high' | 'auto';
+    };
+}
+
+export type LlmMessageContent = string | Array<LlmTextContentPart | LlmImageContentPart>;
+
+export interface LlmMessage {
+    role: 'system' | 'user' | 'assistant';
+    content: LlmMessageContent;
+}
+
 export interface LlmTextRequest {
     policy: ModelPolicyName;
-    userPrompt: string;
+    userPrompt?: string;
     systemPrompt?: string;
+    messages?: LlmMessage[];
     temperature?: number;
     maxOutputTokens?: number;
 }
