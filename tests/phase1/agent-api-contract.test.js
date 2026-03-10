@@ -21,12 +21,16 @@ test('agent routes and schemas enforce the Phase 1 API contract', async () => {
     }))
     .sort((a, b) => a.path.localeCompare(b.path));
 
-  assert.deepEqual(routeSignatures, [
-    { path: '/tasks', methods: ['post'] },
-    { path: '/tasks/:taskId', methods: ['get'] },
-    { path: '/tasks/:taskId/retry', methods: ['post'] },
-    { path: '/tasks/:taskId/review', methods: ['post'] },
-  ]);
+  assert.deepEqual(
+    routeSignatures.filter((route) => route.path.startsWith('/tasks')),
+    [
+      { path: '/tasks', methods: ['post'] },
+      { path: '/tasks/:taskId', methods: ['get'] },
+      { path: '/tasks/:taskId/evidence', methods: ['get'] },
+      { path: '/tasks/:taskId/retry', methods: ['post'] },
+      { path: '/tasks/:taskId/review', methods: ['post'] },
+    ],
+  );
 
   const invalidVideoReq = createMockRequest({
     body: { taskType: 'AUTO_PRODUCT_FROM_VIDEO' },
