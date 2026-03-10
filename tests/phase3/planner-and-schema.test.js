@@ -38,7 +38,7 @@ test('RulePlanner uses the product extraction workflow for clip tasks and preser
   ]);
 });
 
-test('agent schema requires imageUrls or spokenText for clip product extraction', async () => {
+test('agent schema accepts clipLink as a transcript source for clip product extraction', async () => {
   applyTestEnv();
 
   const { createAgentTaskSchema } = require('../../dist/validation/agentSchemas.js');
@@ -61,10 +61,10 @@ test('agent schema requires imageUrls or spokenText for clip product extraction'
   assert.equal(invalidRes.statusCode, 400);
   assert.deepEqual(invalidRes.body, {
     error: '입력 형식 에러',
-    message: 'AUTO_PRODUCT_FROM_CLIP에는 imageUrls 또는 spokenText가 필요합니다.',
+    message: 'AUTO_PRODUCT_FROM_CLIP에는 imageUrls, spokenText, clipLink 중 하나가 필요합니다.',
   });
 
-  const parsed = createAgentTaskSchema.parse({
+  const spokenTextParsed = createAgentTaskSchema.parse({
     taskType: 'AUTO_PRODUCT_FROM_CLIP',
     clipContext: {
       clipId: 'clip-1',
@@ -72,5 +72,15 @@ test('agent schema requires imageUrls or spokenText for clip product extraction'
     },
   });
 
-  assert.equal(parsed.clipContext.spokenText, '이거 나이트 리페어예요.');
+  assert.equal(spokenTextParsed.clipContext.spokenText, '이거 나이트 리페어예요.');
+
+  const clipLinkParsed = createAgentTaskSchema.parse({
+    taskType: 'AUTO_PRODUCT_FROM_CLIP',
+    clipContext: {
+      clipId: 'clip-2',
+      clipLink: 'https://example.com/clip.mp4',
+    },
+  });
+
+  assert.equal(clipLinkParsed.clipContext.clipLink, 'https://example.com/clip.mp4');
 });

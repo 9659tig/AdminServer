@@ -26,7 +26,7 @@ export interface TranscriptExtractionResult {
 }
 
 export interface ShoppingSearchResult {
-    source: 'coupang';
+    source: 'coupang' | 'naver';
     productName: string;
     productUrl: string;
     deepLink?: string;
@@ -52,6 +52,17 @@ export interface LegacyComparison {
     selectedProduct?: string;
 }
 
+export interface VerifierDecision {
+    status: 'READY_FOR_REVIEW' | 'NEEDS_REVIEW';
+    recommendation: 'approve_candidate' | 'review_required';
+    adjustedConfidence: number;
+    reasons: string[];
+    sourceScoreSnapshot: Array<{
+        sourceType: ProductEvidence['sourceType'];
+        averageScore: number;
+    }>;
+}
+
 export interface ProductExtractionResult {
     status: 'READY_FOR_REVIEW' | 'NEEDS_REVIEW';
     recommendation: 'approve_candidate' | 'review_required';
@@ -66,4 +77,5 @@ export interface ProductExtractionResult {
     uncertainty: string | null;
     legacyComparison?: LegacyComparison;
     fallbackReason?: string;
+    verifier?: VerifierDecision;
 }

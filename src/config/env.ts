@@ -6,16 +6,16 @@ dotenv.config();
 const envSchema = z.object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     PORT: z.coerce.number().int().positive().default(3000),
-    S3_BUCKET_NAME: z.string().min(1),
-    S3_BUCKET_REGION: z.string().min(1),
-    S3_ACCESS_KEY: z.string().min(1),
-    S3_SECRET_KEY: z.string().min(1),
     DYNAMO_ACCESS_KEY: z.string().min(1),
     DYNAMO_SECRET_KEY: z.string().min(1),
     GOOGLE_API_KEY: z.string().min(1),
-    OPENAI_API_KEY: z.string().min(1),
-    COUPANG_ACCESS_KEY: z.string().min(1),
-    COUPANG_SECRET_KEY: z.string().min(1),
+    OPENAI_API_KEY: z.string().optional(),
+    GEMINI_API_KEY: z.string().min(1),
+    GROQ_API_KEY: z.string().min(1),
+    NAVER_CLIENT_ID: z.string().optional(),
+    NAVER_CLIENT_SECRET: z.string().optional(),
+    COUPANG_ACCESS_KEY: z.string().optional(),
+    COUPANG_SECRET_KEY: z.string().optional(),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;

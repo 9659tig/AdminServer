@@ -3,7 +3,9 @@ import { AgentTool } from '../tools/types';
 import { VisionProductTool } from '../tools/VisionProductTool';
 import { TranscriptExtractTool } from '../tools/TranscriptExtractTool';
 import { ShoppingSearchTool } from '../tools/ShoppingSearchTool';
-import { OpenAIProvider, openAIProvider } from '../providers/llm/OpenAIProvider';
+import { GeminiProvider, geminiProvider } from '../providers/llm/GeminiProvider';
+import { VerifierAgent, verifierAgent } from '../verifier/VerifierAgent';
+import { FewShotBuilder, fewShotBuilder } from '../memory/FewShotBuilder';
 import {
     LegacyComparison,
     ProductCandidate,
@@ -37,7 +39,9 @@ interface ProductExtractionWorkflowDeps {
     visionTool?: VisionProductTool;
     transcriptTool?: TranscriptExtractTool;
     shoppingTool?: ShoppingSearchTool;
-    provider?: Pick<OpenAIProvider, 'generateObject'>;
+    provider?: Pick<GeminiProvider, 'generateObject'>;
+    verifier?: Pick<VerifierAgent, 'verify'>;
+    fewShotBuilder?: Pick<FewShotBuilder, 'buildForCategory'>;
     reviewThreshold?: number;
 }
 
@@ -262,13 +266,13 @@ export class ProductExtractionWorkflow implements AgentTool {
         const legacyComparison = buildLegacyComparison(context.legacyCandidates ?? [], selectedProduct);
         const evidence = buildEvidence(vision, transcript, transcriptCandidate, shoppingResults, legacyComparison);
         const confidence = calculateConfidence(selectedProduct, shoppingResults, transcriptCandidate);
-        const status = selectedProduct && shoppingResults.length > 0 && confidence >= this.reviewThreshold
-            ? 'READY_FOR_REVIEW'
-            : 'NEEDS_REVIEW';
-
-        return {
-            status,
-            recommendation: status === 'READY_FOR_REVIEW' ? 'approve_candidate' : 'review_required',
+        const preVerifiedResult: ProductExtractionResult = {
+            status: selectedProduct && shoppingResults.length > 0 && confidence >= this.reviewThreshold
+                ? 'READY_FOR_REVIEW'
+                : 'NEEDS_REVIEW',
+            recommendation: selectedProduct && shoppingResults.length > 0 && confidence >= this.reviewThreshold
+                ? 'approve_candidate'
+                : 'review_required',
             confidence,
             selectedProduct,
             allCandidates,
@@ -281,6 +285,15 @@ export class ProductExtractionWorkflow implements AgentTool {
             legacyComparison,
             fallbackReason,
         };
+        const verification = await (this.deps.verifier ?? verifierAgent).verify(preVerifiedResult);
+
+        return {
+            ...preVerifiedResult,
+            status: verification.status,
+            recommendation: verification.recommendation,
+            confidence: verification.adjustedConfidence,
+            verifier: verification,
+        };
     }
 
     private async extractProductFromTranscript(
@@ -288,16 +301,22 @@ export class ProductExtractionWorkflow implements AgentTool {
         context: WorkflowContext,
         visionCandidate?: ProductCandidate,
     ): Promise<ProductCandidate> {
-        const response = await (this.deps.provider ?? openAIProvider).generateObject({
+        const fewShotPrompt = await (this.deps.fewShotBuilder ?? fewShotBuilder).buildForCategory(context.channelCategory);
+        const response = await (this.deps.provider ?? geminiProvider).generateObject({
             policy: 'mini-default',
             schema: transcriptCandidateSchema,
             temperature: 0.1,
-            maxOutputTokens: 300,
-            systemPrompt: 'Return JSON only. Extract the single most likely product mentioned in the transcript.',
+            maxOutputTokens: 2048,
+            systemPrompt: [
+                'Return a single JSON object with exactly this structure:',
+                '{"name": "string", "brand": "string or null", "category": "string", "confidence": 0.0-1.0, "evidence": "string", "searchQuery": "string", "uncertainty": "string or null"}',
+                'Never return a bare array. Use conservative confidence and do not invent unsupported attributes.',
+            ].join('\n'),
             userPrompt: [
                 `Transcript: ${transcriptText}`,
                 `Category: ${context.channelCategory ?? 'unknown'}`,
                 `Current vision candidate: ${visionCandidate ? visionCandidate.name : 'none'}`,
+                fewShotPrompt ? `Approved examples:\n${fewShotPrompt}` : '',
                 'Use conservative confidence and do not invent price or unsupported attributes.',
             ].join('\n'),
         });

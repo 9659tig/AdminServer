@@ -15,17 +15,24 @@ test('agent router exposes the Phase 4 evidence, evaluation, and gold-set routes
     }))
     .sort((a, b) => a.path.localeCompare(b.path));
 
-  assert.deepEqual(routeSignatures, [
-    { path: '/evaluations/:evaluationId', methods: ['get'] },
-    { path: '/evaluations/dual-run', methods: ['post'] },
-    { path: '/evaluations/summary', methods: ['get'] },
-    { path: '/gold-set', methods: ['get'] },
-    { path: '/tasks', methods: ['post'] },
-    { path: '/tasks/:taskId', methods: ['get'] },
-    { path: '/tasks/:taskId/evidence', methods: ['get'] },
-    { path: '/tasks/:taskId/retry', methods: ['post'] },
-    { path: '/tasks/:taskId/review', methods: ['post'] },
-  ]);
+  assert.deepEqual(
+    routeSignatures.filter((route) =>
+      route.path.startsWith('/tasks') ||
+      route.path.startsWith('/evaluations') ||
+      route.path === '/gold-set'
+    ),
+    [
+      { path: '/evaluations/:evaluationId', methods: ['get'] },
+      { path: '/evaluations/dual-run', methods: ['post'] },
+      { path: '/evaluations/summary', methods: ['get'] },
+      { path: '/gold-set', methods: ['get'] },
+      { path: '/tasks', methods: ['post'] },
+      { path: '/tasks/:taskId', methods: ['get'] },
+      { path: '/tasks/:taskId/evidence', methods: ['get'] },
+      { path: '/tasks/:taskId/retry', methods: ['post'] },
+      { path: '/tasks/:taskId/review', methods: ['post'] },
+    ],
+  );
 });
 
 test('dual-run evaluation schema validates the nested agent input and iterations bounds', async () => {

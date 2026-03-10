@@ -28,6 +28,7 @@ async function videoInformation(videoUrl: string){
             name: info.videoDetails.author.name,
             title: info.videoDetails.title,
             id: info.videoDetails.author.id,
+            videoId: info.videoDetails.videoId,
             exist: isInfluencer,
         };
         return {

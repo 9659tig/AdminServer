@@ -117,7 +117,7 @@ input[type="number"] {
   #clipsMainDiv{
     display:flex;
     flex-direction:column;
-    width: 14.4375rem;
+    width: 23rem;
     height: 37.0625rem;
     flex-shrink: 0;
     border-radius: 1.25rem;
@@ -126,16 +126,16 @@ input[type="number"] {
     align-items:center;
   }
   #clipsDiv{
-    width:12.25rem;
-    height:auto;
+    width:20rem;
+    height:14rem;
     display:flex;
     flex-direction:column;
     align-items:center;
-    margin-top:2rem;
+    margin-top:1rem;
     gap:0.5rem;
     overflow-y:auto;
     overflow-x:hidden;
-    margin-left:1rem;
+    margin-left:0;
   }
 #secondsInput{
     border-radius: 0.9375rem;
@@ -198,20 +198,176 @@ input[type="number"] {
 .clipContainer{
     display:flex;
     flex-direction:column;
-    width:11.25rem;
+    width:18rem;
     align-items: center;
+    padding:0.75rem;
+    border-radius: 0.875rem;
+    background: #F6F6F6;
+    gap:0.5rem;
 }
 .clips{
-    width:9.6875rem;
+    width:16rem;
     height:auto;
+    border-radius:0.75rem;
 }
 .clipSpan{
     color: #000;
     font-family: 'Noto Sans KR';
     font-size: 0.75rem;
     font-style: normal;
-    font-weight: 300;
+    font-weight: 500;
     line-height: normal;
+}
+.clipMeta{
+    width:100%;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:0.75rem;
+}
+.clipButton{
+    width:100%;
+    height:2.25rem;
+    border:none;
+    border-radius:0.75rem;
+    background:#111;
+    color:#FFF;
+    font-family:'Noto Sans KR';
+    font-size:0.875rem;
+    font-weight:700;
+    cursor:pointer;
+}
+.clipButton:disabled{
+    opacity:0.6;
+    cursor:wait;
+}
+.panelHeader{
+    width:20rem;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:1.25rem;
+}
+.reviewHeader{
+    align-items:flex-start;
+    flex-direction:column;
+    gap:0.35rem;
+}
+.panelTitle{
+    font-family:'Noto Sans KR';
+    font-size:1.125rem;
+    font-weight:700;
+    margin:0;
+}
+.secondaryButton{
+    height:2rem;
+    border-radius:0.75rem;
+    border:1px solid #D0D0D0;
+    background:#FFF;
+    font-family:'Noto Sans KR';
+    font-size:0.8125rem;
+    font-weight:600;
+    cursor:pointer;
+    padding:0 0.75rem;
+}
+.statusText{
+    color:#666;
+    font-family:'Noto Sans KR';
+    font-size:0.75rem;
+    line-height:1.4;
+}
+#reviewPanel{
+    width:20rem;
+    margin-top:1rem;
+    padding-top:1rem;
+    border-top:1px solid #ECECEC;
+}
+.reviewContent{
+    margin-top:0.75rem;
+    width:100%;
+    height:14.5rem;
+    overflow-y:auto;
+}
+.reviewCard{
+    display:flex;
+    flex-direction:column;
+    gap:0.75rem;
+    padding:0.875rem;
+    border-radius:0.875rem;
+    background:#F6F6F6;
+}
+.emptyState{
+    color:#666;
+    font-family:'Noto Sans KR';
+    font-size:0.875rem;
+    line-height:1.5;
+    margin:0;
+}
+.reviewHeadline{
+    display:flex;
+    flex-direction:column;
+    gap:0.2rem;
+}
+.reviewName{
+    font-family:'Noto Sans KR';
+    font-size:1rem;
+    font-weight:700;
+    margin:0;
+}
+.reviewSub{
+    color:#444;
+    font-family:'Noto Sans KR';
+    font-size:0.8125rem;
+    margin:0;
+}
+.reviewBadge{
+    width:fit-content;
+    padding:0.3rem 0.55rem;
+    border-radius:999px;
+    background:#FFF;
+    font-family:'Noto Sans KR';
+    font-size:0.75rem;
+    font-weight:700;
+}
+.resultList{
+    display:flex;
+    flex-direction:column;
+    gap:0.5rem;
+}
+.resultItem{
+    display:flex;
+    flex-direction:column;
+    gap:0.15rem;
+    padding:0.65rem;
+    border-radius:0.75rem;
+    background:#FFF;
+}
+.resultLink{
+    color:#111;
+    text-decoration:none;
+    font-family:'Noto Sans KR';
+    font-size:0.8125rem;
+    font-weight:600;
+}
+.resultMeta{
+    color:#666;
+    font-family:'Noto Sans KR';
+    font-size:0.75rem;
+    margin:0;
+}
+.evidenceText{
+    color:#444;
+    font-family:'Noto Sans KR';
+    font-size:0.75rem;
+    margin:0;
+    line-height:1.45;
+}
+.warningText{
+    color:#A64B00;
+    font-family:'Noto Sans KR';
+    font-size:0.75rem;
+    margin:0;
+    line-height:1.45;
 }
 .spinner {
     border: 4px solid rgba(255, 255, 255, 0.3);
@@ -233,7 +389,6 @@ input[type="number"] {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
-
 
 
 
