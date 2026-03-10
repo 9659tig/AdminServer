@@ -6,12 +6,14 @@ export const taskIdParamSchema = z.object({
 
 const clipContextSchema = z.object({
     clipId: z.string().trim().min(1, 'clipId값이 없습니다.'),
+    clipLink: z.string().trim().url().optional(),
     videoId: z.string().trim().optional(),
     imageUrls: z.array(z.string().trim().url()).optional().default([]),
     startSec: z.coerce.number().min(0).optional(),
     endSec: z.coerce.number().min(0).optional(),
     channelName: z.string().trim().optional(),
     videoTitle: z.string().trim().optional(),
+    spokenText: z.string().trim().optional(),
 }).superRefine((value, ctx) => {
     if (value.startSec !== undefined && value.endSec !== undefined && value.endSec <= value.startSec) {
         ctx.addIssue({
@@ -27,6 +29,7 @@ export const createAgentTaskSchema = z.object({
     videoUrl: z.string().trim().url().optional(),
     channelCategory: z.string().trim().optional(),
     clipContext: clipContextSchema.optional(),
+    legacyCandidates: z.array(z.string().trim().min(1)).optional().default([]),
 }).superRefine((value, ctx) => {
     if (value.taskType === 'AUTO_PRODUCT_FROM_VIDEO' && !value.videoUrl) {
         ctx.addIssue({
@@ -42,6 +45,19 @@ export const createAgentTaskSchema = z.object({
             message: 'AUTO_PRODUCT_FROM_CLIP에는 clipContext가 필요합니다.',
             path: ['clipContext'],
         });
+    }
+
+    if (value.taskType === 'AUTO_PRODUCT_FROM_CLIP' && value.clipContext) {
+        const hasImageUrls = (value.clipContext.imageUrls?.length ?? 0) > 0;
+        const hasSpokenText = Boolean(value.clipContext.spokenText?.trim());
+
+        if (!hasImageUrls && !hasSpokenText) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'AUTO_PRODUCT_FROM_CLIP에는 imageUrls 또는 spokenText가 필요합니다.',
+                path: ['clipContext'],
+            });
+        }
     }
 });
 

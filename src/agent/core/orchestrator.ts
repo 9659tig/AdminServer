@@ -15,6 +15,10 @@ import {
     ReviewPayload,
 } from './types';
 import { BuildClipContextTool, BuildVideoContextTool, PrepareReviewPayloadTool } from '../tools/contextTools';
+import { VisionProductTool } from '../tools/VisionProductTool';
+import { TranscriptExtractTool } from '../tools/TranscriptExtractTool';
+import { ShoppingSearchTool } from '../tools/ShoppingSearchTool';
+import { ProductExtractionWorkflow } from '../workflows/ProductExtractionWorkflow';
 
 export interface OrchestratorDependencies {
     taskStore: AgentTaskStore;
@@ -26,8 +30,21 @@ export interface OrchestratorDependencies {
 
 function createDefaultToolRegistry(): ToolRegistry {
     const registry = new ToolRegistry();
+    const visionTool = new VisionProductTool();
+    const transcriptTool = new TranscriptExtractTool();
+    const shoppingTool = new ShoppingSearchTool();
+    const productExtractionWorkflow = new ProductExtractionWorkflow({
+        visionTool,
+        transcriptTool,
+        shoppingTool,
+    });
+
     registry.register('build_video_context', new BuildVideoContextTool());
     registry.register('build_clip_context', new BuildClipContextTool());
+    registry.register('vision_product', visionTool);
+    registry.register('extract_transcript', transcriptTool);
+    registry.register('shopping_search', shoppingTool);
+    registry.register('product_extraction_workflow', productExtractionWorkflow);
     registry.register('prepare_review_payload', new PrepareReviewPayloadTool());
     return registry;
 }

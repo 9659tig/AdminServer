@@ -12,12 +12,14 @@ export type AgentStepStatus = 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED';
 
 export interface ClipTaskContext {
     clipId: string;
+    clipLink?: string;
     videoId?: string;
     imageUrls?: string[];
     startSec?: number;
     endSec?: number;
     channelName?: string;
     videoTitle?: string;
+    spokenText?: string;
 }
 
 export interface AgentTaskInput {
@@ -25,6 +27,7 @@ export interface AgentTaskInput {
     videoUrl?: string;
     channelCategory?: string;
     clipContext?: ClipTaskContext;
+    legacyCandidates?: string[];
 }
 
 export interface PlanStep {
