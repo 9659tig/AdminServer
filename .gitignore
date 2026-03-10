@@ -4,8 +4,8 @@ dist/
 
 *.md
 !README.md
-!PHASE*.md
 
 .DS_Store
 
 .vscode/
+docs/

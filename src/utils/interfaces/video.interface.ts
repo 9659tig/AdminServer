@@ -2,6 +2,7 @@ export interface VideoInfo {
     name: string;
     title: string;
     id: string;
+    videoId: string;
     exist: boolean;
 }
 

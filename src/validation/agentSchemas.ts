@@ -8,8 +8,12 @@ export const evaluationIdParamSchema = z.object({
     evaluationId: z.string().trim().min(1, 'evaluationId값이 없습니다.'),
 });
 
+export const canaryDecisionSchema = z.object({
+    routingKey: z.string().trim().min(1, 'routingKey값이 없습니다.'),
+});
+
 const clipContextSchema = z.object({
-    clipId: z.string().trim().min(1, 'clipId값이 없습니다.'),
+    clipId: z.string().trim().min(1).optional(),
     clipLink: z.string().trim().url().optional(),
     videoId: z.string().trim().optional(),
     imageUrls: z.array(z.string().trim().url()).optional().default([]),
@@ -35,14 +39,6 @@ export const createAgentTaskSchema = z.object({
     clipContext: clipContextSchema.optional(),
     legacyCandidates: z.array(z.string().trim().min(1)).optional().default([]),
 }).superRefine((value, ctx) => {
-    if (value.taskType === 'AUTO_PRODUCT_FROM_VIDEO' && !value.videoUrl) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: 'AUTO_PRODUCT_FROM_VIDEO에는 videoUrl이 필요합니다.',
-            path: ['videoUrl'],
-        });
-    }
-
     if (value.taskType === 'AUTO_PRODUCT_FROM_CLIP' && !value.clipContext) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
@@ -54,11 +50,12 @@ export const createAgentTaskSchema = z.object({
     if (value.taskType === 'AUTO_PRODUCT_FROM_CLIP' && value.clipContext) {
         const hasImageUrls = (value.clipContext.imageUrls?.length ?? 0) > 0;
         const hasSpokenText = Boolean(value.clipContext.spokenText?.trim());
+        const hasClipLink = Boolean(value.clipContext.clipLink?.trim());
 
-        if (!hasImageUrls && !hasSpokenText) {
+        if (!hasImageUrls && !hasSpokenText && !hasClipLink) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
-                message: 'AUTO_PRODUCT_FROM_CLIP에는 imageUrls 또는 spokenText가 필요합니다.',
+                message: 'AUTO_PRODUCT_FROM_CLIP에는 imageUrls, spokenText, clipLink 중 하나가 필요합니다.',
                 path: ['clipContext'],
             });
         }
@@ -70,25 +67,8 @@ export const retryTaskSchema = z.object({
 });
 
 export const reviewTaskSchema = z.object({
-    action: z.enum(['approve', 'edit', 'reject']),
-    editedFields: z.record(z.any()).optional(),
-    reason: z.string().trim().optional(),
-}).superRefine((value, ctx) => {
-    if (value.action === 'edit' && (!value.editedFields || Object.keys(value.editedFields).length === 0)) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: 'edit 액션에는 editedFields가 필요합니다.',
-            path: ['editedFields'],
-        });
-    }
-
-    if (value.action === 'reject' && !value.reason) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: 'reject 액션에는 reason이 필요합니다.',
-            path: ['reason'],
-        });
-    }
+    approved: z.array(z.number().int()).default([]),
+    comment: z.string().trim().optional(),
 });
 
 export const dualRunEvaluationSchema = z.object({
@@ -96,4 +76,11 @@ export const dualRunEvaluationSchema = z.object({
     goldLabel: z.string().trim().optional(),
     evaluationName: z.string().trim().optional(),
     iterations: z.coerce.number().int().min(1).max(10).optional().default(3),
+});
+
+export const updateCanaryConfigSchema = z.object({
+    rolloutPercentage: z.coerce.number().int().min(0).max(100).optional(),
+    forceStrategy: z.enum(['agent', 'legacy']).optional(),
+}).refine((value) => value.rolloutPercentage !== undefined || value.forceStrategy !== undefined, {
+    message: 'rolloutPercentage 또는 forceStrategy 중 하나는 필요합니다.',
 });

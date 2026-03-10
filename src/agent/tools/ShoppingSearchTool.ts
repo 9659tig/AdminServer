@@ -1,4 +1,6 @@
 import { generateHmac } from '../../utils/generateHmac';
+import { COUPANG_ACCESS } from '../../config/secret';
+import { getEnv } from '../../config/env';
 import { ShoppingSearchResult } from '../workflows/productTypes';
 
 interface FetchResponseLike {
@@ -82,12 +84,57 @@ function normalizeCoupangItems(payload: unknown): ShoppingSearchResult[] {
     return normalizedItems.sort((a, b) => b.reviewCount - a.reviewCount);
 }
 
+async function searchViaNaver(query: string, limit: number): Promise<ShoppingSearchResult[]> {
+    const env = getEnv();
+    if (!env.NAVER_CLIENT_ID || !env.NAVER_CLIENT_SECRET) {
+        return [];
+    }
+
+    // 검색어에 쉼표가 있으면 첫 번째 키워드만 사용
+    const cleanQuery = query.split(',')[0].trim();
+
+    const url = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(cleanQuery)}&display=${limit}&sort=sim`;
+    const response = await fetch(url, {
+        headers: {
+            'X-Naver-Client-Id': env.NAVER_CLIENT_ID,
+            'X-Naver-Client-Secret': env.NAVER_CLIENT_SECRET,
+        },
+    });
+
+    if (!response.ok) {
+        throw new Error(`Naver shopping search failed: ${response.status}`);
+    }
+
+    const data = await response.json() as { items?: Array<Record<string, unknown>> };
+    const items = data.items ?? [];
+
+    return items.slice(0, limit).map((item, index) => ({
+        source: 'naver' as const,
+        productName: String(item.title ?? '').replace(/<[^>]+>/g, ''),
+        productUrl: String(item.link ?? ''),
+        price: item.lprice ? Number(item.lprice) : undefined,
+        currency: 'KRW',
+        reviewCount: 0,
+        imageUrl: item.image ? String(item.image) : undefined,
+        rank: index + 1,
+        metadata: {
+            mallName: String(item.mallName ?? ''),
+            productId: String(item.productId ?? ''),
+        },
+    }));
+}
+
 export class ShoppingSearchTool {
     constructor(private readonly deps: ShoppingSearchDeps = {}) {}
 
     async search(query: string, limit = 5): Promise<ShoppingSearchResult[]> {
         if (!query.trim()) {
             return [];
+        }
+
+        // 쿠팡 어필리에이트 API 키가 없으면 네이버 쇼핑 API로 대체
+        if (!COUPANG_ACCESS.KEY || !COUPANG_ACCESS.SECRET_KEY) {
+            return searchViaNaver(query, limit);
         }
 
         const fetchImpl = this.deps.fetchImpl ?? (globalThis.fetch as FetchLike | undefined);

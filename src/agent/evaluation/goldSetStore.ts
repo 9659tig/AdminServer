@@ -3,6 +3,7 @@ import { GoldSetExample } from './types';
 export interface GoldSetStore {
     add(example: GoldSetExample): Promise<void>;
     list(): Promise<GoldSetExample[]>;
+    listByCategory(category: string): Promise<GoldSetExample[]>;
     size(): Promise<number>;
     reset(): Promise<void>;
 }
@@ -16,6 +17,11 @@ class InMemoryGoldSetStore implements GoldSetStore {
 
     async list(): Promise<GoldSetExample[]> {
         return [...this.examples.values()];
+    }
+
+    async listByCategory(category: string): Promise<GoldSetExample[]> {
+        const normalized = category.trim().toLowerCase();
+        return [...this.examples.values()].filter((example) => (example.category ?? '').trim().toLowerCase() === normalized);
     }
 
     async size(): Promise<number> {

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { OpenAIProvider, openAIProvider } from '../providers/llm/OpenAIProvider';
+import { GeminiProvider, geminiProvider } from '../providers/llm/GeminiProvider';
 import { ProductCandidate, VisionProductResult } from '../workflows/productTypes';
 
 const visionProductSchema = z.object({
@@ -27,7 +27,7 @@ interface VisionToolInput {
 }
 
 interface VisionToolDeps {
-    provider?: Pick<OpenAIProvider, 'generateObject'>;
+    provider?: Pick<GeminiProvider, 'generateObject'>;
     escalationThreshold?: number;
 }
 
@@ -60,7 +60,7 @@ export class VisionProductTool {
     }
 
     async identify(input: VisionToolInput): Promise<VisionProductResult> {
-        const imageUrls = (input.imageUrls ?? []).filter(Boolean).slice(0, 4);
+        const imageUrls = (input.imageUrls ?? []).filter(Boolean).slice(0, 3);
 
         if (!imageUrls.length) {
             return {
@@ -120,18 +120,27 @@ export class VisionProductTool {
         imageUrls: string[],
         input: VisionToolInput,
     ): Promise<Omit<VisionProductResult, 'policyUsed' | 'escalated'>> {
-        const response = await (this.deps.provider ?? openAIProvider).generateObject({
+        const response = await (this.deps.provider ?? geminiProvider).generateObject({
             policy,
             schema: visionOutputSchema,
             temperature: 0.1,
-            maxOutputTokens: 800,
+            maxOutputTokens: 4096,
             messages: [
                 {
                     role: 'system',
                     content: [
                         {
                             type: 'text',
-                            text: 'Return JSON only. Identify visible products conservatively. Never invent prices.',
+                            text: [
+                                'Return a single JSON object with exactly this structure:',
+                                '{',
+                                '  "products": [{"name": "string", "brand": "string or null", "category": "string", "confidence": 0.0-1.0, "evidence": "string", "searchQuery": "string"}],',
+                                '  "sceneDescription": "string",',
+                                '  "uncertainty": "string or null"',
+                                '}',
+                                'Always wrap results in this object. Never return a bare array.',
+                                'Identify visible products conservatively. Never invent prices.',
+                            ].join('\n'),
                         },
                     ],
                 },
@@ -146,7 +155,7 @@ export class VisionProductTool {
                             type: 'image_url' as const,
                             image_url: {
                                 url,
-                                detail: 'high' as const,
+                                detail: 'low' as const,
                             },
                         })),
                     ],

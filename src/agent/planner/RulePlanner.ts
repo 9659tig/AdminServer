@@ -2,41 +2,19 @@ import { AgentTaskInput, Plan } from '../core/types';
 
 export class RulePlanner {
     createPlan(input: AgentTaskInput): Plan {
-        const shouldUseProductWorkflow = input.taskType === 'AUTO_PRODUCT_FROM_CLIP'
-            || Boolean(input.clipContext?.imageUrls?.length)
-            || Boolean(input.clipContext?.spokenText?.trim());
-
         if (input.taskType === 'AUTO_PRODUCT_FROM_VIDEO') {
-            if (!shouldUseProductWorkflow) {
-                return {
-                    version: 'rule-v1',
-                    steps: [
-                        {
-                            stepId: 'build-video-context',
-                            tool: 'build_video_context',
-                            input: {
-                                videoUrl: input.videoUrl,
-                                channelCategory: input.channelCategory ?? 'unknown',
-                                taskType: input.taskType,
-                                clipContext: input.clipContext,
-                                legacyCandidates: input.legacyCandidates ?? [],
-                            },
-                        },
-                        {
-                            stepId: 'prepare-review-payload',
-                            tool: 'prepare_review_payload',
-                            input: {
-                                taskType: input.taskType,
-                                context: '{{build-video-context.output.context}}',
-                            },
-                        },
-                    ],
-                };
-            }
-
             return {
-                version: 'workflow-v1',
+                version: 'video-v2',
                 steps: [
+                    {
+                        stepId: 'extract-frames',
+                        tool: 'video_frame_extractor',
+                        input: {
+                            localVideoPath: '{{input.localVideoPath}}',
+                            frameIntervalSec: 5,
+                            maxFrames: 6,
+                        },
+                    },
                     {
                         stepId: 'build-video-context',
                         tool: 'build_video_context',
@@ -44,7 +22,12 @@ export class RulePlanner {
                             videoUrl: input.videoUrl,
                             channelCategory: input.channelCategory ?? 'unknown',
                             taskType: input.taskType,
-                            clipContext: input.clipContext,
+                            clipContext: {
+                                imageUrls: '{{extract-frames.output.imageUrls}}',
+                                localVideoPath: '{{input.localVideoPath}}',
+                                videoTitle: input.clipContext?.videoTitle,
+                                channelName: input.clipContext?.channelName,
+                            },
                             legacyCandidates: input.legacyCandidates ?? [],
                         },
                     },
@@ -68,6 +51,7 @@ export class RulePlanner {
             };
         }
 
+        // AUTO_PRODUCT_FROM_CLIP (기존)
         return {
             version: 'workflow-v1',
             steps: [

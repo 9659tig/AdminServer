@@ -1,57 +1,98 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <script src="https://cdn.jsdelivr.net/npm/p5@1.6.0/lib/p5.js"></script>
-    <link rel="stylesheet" type="text/css" href="main.css">
-    <meta charset="utf-8" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600&family=Oswald&display=swap" rel="stylesheet">
-  </head>
-  <body>
-    <header>
-        <div id="headerDiv1"></div>
-        <div id="headerDiv2">
-            <div>
-                <h1 id = 'headerLogo'>로고</h1>
-            </div>
-            <div>
-                <h1 id='headerTitle'>Linfluencer Web Tool</h1>
-            </div>
-            <nav>
-                <p>Capture Review</p>
-                <p>Product Review</p>
-            </nav>
-        </div>
-        
-    </header>
-    <main>
-      <div id="findVideoDiv">
-        <h2 id="findVideoH3">YouTube 동영상 불러오기</h2>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Linpl Admin</title>
+  <link rel="stylesheet" href="main.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header>
+    <div class="header-bar"></div>
+    <div class="header-content">
+      <span class="logo">Linpl</span>
+      <span class="header-title">Admin Tool</span>
+    </div>
+  </header>
 
-        <div id="videoFormDiv">
-            <form id="videoForm">
-                <div id="videoInputsDiv">
-                  <div id="linkInputDiv">
-                    <input type="text" id="linkInput" placeholder="동영상 링크를 입력하세요">
-                    
-                    <button class="clear-button" id="linkAutomizeButton">auto</button>
-                  </div>
-                    <div id="bottomInputDiv">
-                        <div id = "creatorInputDiv">
-                          <input type="text" id="creatorInput" placeholder="크리에이터를 입력하세요">
-                          <button class = "clear-button" id="creatorButton">✔</button>
-                        </div>
-                        <input type="text" id="videoNameInput" placeholder="동영상 이름을 입력하세요">
-                    </div>
-                </div>
-                <button id="submitVideoButton">입력하기</button>
-            </form>
-            <div id="loading-spinner" class="spinner"></div>
+  <main>
+    <!-- 업로드 패널 -->
+    <section id="upload-panel" class="panel">
+      <h2>영상 업로드</h2>
+
+      <div id="drop-zone">
+        <input type="file" id="file-input" accept="video/*" hidden>
+        <div id="drop-label">
+          <span class="drop-icon">&#128249;</span>
+          <p>영상 파일을 드래그하거나 클릭하여 선택</p>
+          <p class="sub">지원 형식: mp4, mov, avi, mkv</p>
+        </div>
+        <div id="file-selected" hidden>
+          <span class="drop-icon">&#10003;</span>
+          <p id="file-name"></p>
         </div>
       </div>
-    </main>
-       
-    <script src="main.js"></script>
-  </body>
+
+      <div class="meta-row">
+        <input type="text" id="video-title" placeholder="영상 제목 (선택)">
+        <input type="text" id="channel-name" placeholder="채널명 (선택)">
+        <input type="text" id="channel-category" placeholder="카테고리 (선택)">
+      </div>
+
+      <button id="submit-btn" disabled>분석 시작</button>
+    </section>
+
+    <!-- 태스크 상태 패널 -->
+    <section id="task-panel" class="panel" hidden>
+      <div class="task-header">
+        <h2>분석 현황</h2>
+        <button id="back-btn" class="ghost-btn">&#8592; 새 업로드</button>
+      </div>
+
+      <div id="task-info">
+        <div class="info-row">
+          <span class="label">태스크 ID</span>
+          <span id="task-id-display" class="mono"></span>
+        </div>
+        <div class="info-row">
+          <span class="label">상태</span>
+          <span id="task-status-badge" class="badge"></span>
+        </div>
+      </div>
+
+      <div id="progress-area">
+        <div id="step-list"></div>
+      </div>
+
+      <!-- 리뷰 패널 (NEEDS_REVIEW일 때만 표시) -->
+      <div id="review-panel" hidden>
+        <div class="review-header">
+          <h3>추출 결과 검토</h3>
+          <div class="review-actions">
+            <button id="approve-all-btn" class="approve-btn">전체 승인</button>
+            <button id="reject-all-btn" class="reject-btn">전체 거절</button>
+          </div>
+        </div>
+        <div id="product-list"></div>
+        <div class="review-footer">
+          <textarea id="review-comment" placeholder="코멘트 (선택)"></textarea>
+          <div class="footer-btns">
+            <button id="submit-review-btn" class="primary-btn">검토 완료</button>
+            <button id="retry-btn" class="ghost-btn">재실행</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="failed-panel" hidden>
+        <p class="error-msg" id="error-msg"></p>
+        <button id="retry-failed-btn" class="reject-btn">재실행</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="main.js"></script>
+</body>
 </html>

@@ -5,63 +5,353 @@ let start = false;
 let Playing = -1;
 let startFrame;
 let clipStartTime = 0;
-let clipEndTime;
-
-let clipCount = 0;
-
-let clips = [];
-function checkUrlAvailability(url) {
-    return new Promise((resolve) => {
-        fetch(url)
-            .then((response) => {
-                if (response.status === 200) {
-                    resolve(url); // Resolve the promise with the URL if it's accessible
-                } else {
-                    // Retry after a delay
-                    setTimeout(() => checkUrlAvailability(url).then(resolve), 300);
-                }
-            })
-            .catch(() => {
-                // Retry after a delay
-                setTimeout(() => checkUrlAvailability(url).then(resolve), 300);
-            });
-    });
-}
+let clipEndTime = 0;
+let clipRecords = [];
+let sourceVideoUrl = '';
 const queryString = window.location.search;
 const urlParams = new URLSearchParams(queryString);
-const encodedUrl = urlParams.get("videoUrl");
-const channelID = urlParams.get('channelID')
-const decodedInfluencer = decodeURIComponent(urlParams.get("influencer"));
-const decodedVideoName = decodeURIComponent(urlParams.get("videoName"));
+const encodedUrl = urlParams.get("videoUrl") || '';
+const channelID = urlParams.get('channelID') || '';
+const videoID = urlParams.get('videoId') || '';
+const decodedInfluencer = decodeURIComponent(urlParams.get("influencer") || '');
+const decodedVideoName = decodeURIComponent(urlParams.get("videoName") || '');
 const directoryName = decodedInfluencer + '/' + decodedVideoName;
 
-
-const URL = `https://taewons3.s3.ap-northeast-2.amazonaws.com/${encodeURIComponent(directoryName)}.mp4`;
-
 const loadingSpinner = document.getElementById('loading-spinner');
+const clipsDiv = document.getElementById('clipsDiv');
+const reviewStatus = document.getElementById('reviewStatus');
+const reviewContent = document.getElementById('reviewContent');
+const refreshClipsButton = document.getElementById('refreshClipsButton');
 
-fetch(URL) //initially check if video is already downloaded on s3
-    .then(response => {
-        if(response.ok)
-            console.log('video preloaded');
-        else{
-            loadingSpinner.style.display = 'block';
-            fetch('https://keixt9i5yc.execute-api.ap-northeast-2.amazonaws.com/default/sam-ytdl-YTDLFunction-QLEz7J3HSLis'+`?videoUrl=${encodedUrl}&name=${encodeURIComponent(directoryName)}`)
+function wait(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function isUrlAvailable(url) {
+    try {
+        const response = await fetch(url, { method: 'HEAD' });
+        return response.ok;
+    } catch (_error) {
+        return false;
+    }
+}
+
+async function waitForUrlAvailability(url, maxAttempts = 120) {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        if (await isUrlAvailable(url)) {
+            return url;
         }
-    })
-    .catch(err=>{ //start downloading it on s3 with aws lambda
-        fetch('https://keixt9i5yc.execute-api.ap-northeast-2.amazonaws.com/default/sam-ytdl-YTDLFunction-QLEz7J3HSLis'+`?videoUrl=${encodedUrl}&name=${encodeURIComponent(directoryName)}`)
-    })
 
-checkUrlAvailability(URL) //check if download is complete
-    .then((resolvedUrl) => {
+        await wait(1000);
+    }
+
+    throw new Error('소스 영상이 준비되지 않았습니다.');
+}
+
+async function getSourceVideoConfig() {
+    const response = await fetch(`/videoSource?name=${encodeURIComponent(directoryName)}`);
+    if (!response.ok) {
+        throw new Error('소스 영상 설정을 불러오지 못했습니다.');
+    }
+
+    return response.json();
+}
+
+async function requestSourceVideoDownload() {
+    const response = await fetch('/videoSource/download', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            videoUrl: encodedUrl,
+            name: directoryName,
+        })
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || '소스 영상 다운로드를 시작하지 못했습니다.');
+    }
+}
+
+function escapeHtml(value) {
+    return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+}
+
+function formatTime(seconds) {
+    const safeSeconds = Number.isFinite(seconds) ? seconds : 0;
+    const minutes = Math.floor(safeSeconds / 60);
+    const remainSeconds = Math.floor(safeSeconds % 60);
+    return `${minutes.toString().padStart(2, '0')}:${remainSeconds.toString().padStart(2, '0')}`;
+}
+
+function formatPrice(price) {
+    if (!Number.isFinite(price)) {
+        return '가격 정보 없음';
+    }
+
+    return `${new Intl.NumberFormat('ko-KR').format(price)}원`;
+}
+
+function setReviewStatus(message) {
+    reviewStatus.textContent = message;
+}
+
+function renderReviewPlaceholder(message) {
+    reviewContent.innerHTML = `<p class="emptyState">${escapeHtml(message)}</p>`;
+}
+
+function renderClipList(items) {
+    clipsDiv.innerHTML = '';
+
+    if (!items.length) {
+        clipsDiv.innerHTML = '<p class="emptyState">아직 생성된 클립이 없습니다.</p>';
+        return;
+    }
+
+    items.forEach((clip, index) => {
+        const clipContainer = document.createElement('div');
+        clipContainer.classList.add('clipContainer');
+
+        const clipVideo = document.createElement('video');
+        clipVideo.src = clip.clipLink;
+        clipVideo.controls = true;
+        clipVideo.classList.add('clips');
+
+        const meta = document.createElement('div');
+        meta.classList.add('clipMeta');
+
+        const clipSpan = document.createElement('span');
+        clipSpan.textContent = `#${items.length - index} [${formatTime(clip.startTime)} - ${formatTime(clip.endTime)}]`;
+        clipSpan.classList.add('clipSpan');
+
+        meta.appendChild(clipSpan);
+
+        const analyzeButton = document.createElement('button');
+        analyzeButton.textContent = '상품 후보 찾기';
+        analyzeButton.classList.add('clipButton');
+        analyzeButton.addEventListener('click', () => {
+            runProductLookup(clip, analyzeButton);
+        });
+
+        clipContainer.appendChild(clipVideo);
+        clipContainer.appendChild(meta);
+        clipContainer.appendChild(analyzeButton);
+
+        clipsDiv.appendChild(clipContainer);
+    });
+}
+
+async function refreshClipList() {
+    if (!videoID) {
+        renderClipList([]);
+        return [];
+    }
+
+    try {
+        const response = await fetch(`/clips/${encodeURIComponent(videoID)}`);
+        if (!response.ok) {
+            throw new Error('클립 목록을 불러오지 못했습니다.');
+        }
+
+        const data = await response.json();
+        clipRecords = Array.isArray(data) ? data : [];
+        renderClipList(clipRecords);
+        return clipRecords;
+    } catch (error) {
+        console.error(error);
+        clipsDiv.innerHTML = '<p class="emptyState">클립 목록을 불러오지 못했습니다.</p>';
+        return [];
+    }
+}
+
+async function pollForNewClip(previousCount) {
+    setReviewStatus('클립 생성 요청을 보냈습니다. 완료되면 목록에 추가됩니다.');
+
+    for (let attempt = 0; attempt < 20; attempt++) {
+        await wait(1500);
+        const latestClips = await refreshClipList();
+        if (latestClips.length > previousCount) {
+            setReviewStatus('새 클립이 준비되었습니다. 상품 후보를 바로 확인할 수 있습니다.');
+            return;
+        }
+    }
+
+    setReviewStatus('클립 생성이 아직 진행 중입니다. 잠시 후 새로고침해 주세요.');
+}
+
+function buildReviewHtml(taskDetails, clip) {
+    const reviewPayload = taskDetails.task?.result?.reviewPayload
+        || taskDetails.steps?.find((step) => step.stepId === 'prepare-review-payload')?.output?.reviewPayload;
+    const extraction = reviewPayload?.extraction;
+
+    if (!extraction) {
+        return `
+            <div class="reviewCard">
+                <p class="emptyState">상품 후보를 아직 만들지 못했습니다.</p>
+            </div>
+        `;
+    }
+
+    const selectedProduct = extraction.selectedProduct;
+    const shoppingResults = Array.isArray(extraction.shoppingResults) ? extraction.shoppingResults : [];
+    const evidence = Array.isArray(extraction.evidence) ? extraction.evidence : [];
+    const verifierReasons = Array.isArray(extraction.verifier?.reasons) ? extraction.verifier.reasons : [];
+
+    const headline = selectedProduct
+        ? `
+            <div class="reviewHeadline">
+                <p class="reviewName">${escapeHtml(selectedProduct.name)}</p>
+                <p class="reviewSub">${escapeHtml(selectedProduct.brand || '브랜드 미확인')} · ${escapeHtml(selectedProduct.category || '카테고리 미확인')}</p>
+            </div>
+        `
+        : '<p class="reviewName">상품 후보 없음</p>';
+
+    const resultsHtml = shoppingResults.length
+        ? shoppingResults.slice(0, 3).map((result) => `
+            <div class="resultItem">
+                <a class="resultLink" href="${escapeHtml(result.productUrl)}" target="_blank" rel="noreferrer">${escapeHtml(result.productName)}</a>
+                <p class="resultMeta">${escapeHtml(formatPrice(result.price))} · 리뷰 ${escapeHtml(result.reviewCount)}</p>
+            </div>
+        `).join('')
+        : '<p class="emptyState">쇼핑 결과를 찾지 못했습니다.</p>';
+
+    const evidenceHtml = evidence.length
+        ? evidence.slice(0, 3).map((item) => `<p class="evidenceText">${escapeHtml(item.sourceType)}: ${escapeHtml(item.summary)}</p>`).join('')
+        : '<p class="emptyState">근거 정보가 없습니다.</p>';
+
+    const warningHtml = verifierReasons.length || extraction.fallbackReason
+        ? `
+            <p class="warningText">${escapeHtml([
+                extraction.fallbackReason ? `fallback=${extraction.fallbackReason}` : '',
+                ...verifierReasons,
+            ].filter(Boolean).join(', '))}</p>
+        `
+        : '';
+
+    return `
+        <div class="reviewCard">
+            <div class="reviewHeadline">
+                <p class="reviewSub">클립 구간 ${escapeHtml(formatTime(clip.startTime))} - ${escapeHtml(formatTime(clip.endTime))}</p>
+                ${headline}
+            </div>
+            <span class="reviewBadge">confidence ${escapeHtml(extraction.confidence ?? 0)}</span>
+            <div class="resultList">
+                ${resultsHtml}
+            </div>
+            <div class="resultList">
+                ${evidenceHtml}
+            </div>
+            ${warningHtml}
+        </div>
+    `;
+}
+
+async function pollAgentTask(taskId, clip, button) {
+    for (let attempt = 0; attempt < 30; attempt++) {
+        const response = await fetch(`/agent/tasks/${encodeURIComponent(taskId)}`);
+        if (!response.ok) {
+            throw new Error('상품 후보 작업 상태를 불러오지 못했습니다.');
+        }
+
+        const taskDetails = await response.json();
+        const status = taskDetails.task?.status;
+
+        if (status === 'FAILED') {
+            throw new Error(taskDetails.task?.error || '상품 후보 분석에 실패했습니다.');
+        }
+
+        if (status === 'NEEDS_REVIEW' || status === 'DONE') {
+            setReviewStatus('상품 후보 검토 준비가 완료되었습니다.');
+            reviewContent.innerHTML = buildReviewHtml(taskDetails, clip);
+            button.disabled = false;
+            button.textContent = '다시 분석하기';
+            return;
+        }
+
+        setReviewStatus(`상품 후보를 찾는 중입니다... (${status})`);
+        await wait(1500);
+    }
+
+    throw new Error('상품 후보 분석 시간이 초과되었습니다.');
+}
+
+async function runProductLookup(clip, button) {
+    button.disabled = true;
+    button.textContent = '분석 중...';
+    setReviewStatus('상품 후보를 찾는 중입니다...');
+    renderReviewPlaceholder('클립 음성과 메타데이터를 바탕으로 상품 후보를 수집하고 있습니다.');
+
+    try {
+        const response = await fetch('/agent/tasks', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                taskType: 'AUTO_PRODUCT_FROM_CLIP',
+                clipContext: {
+                    clipId: clip.createDate || clip.clipLink,
+                    clipLink: clip.clipLink,
+                    videoId: clip.videoId || videoID,
+                    startSec: clip.startTime,
+                    endSec: clip.endTime,
+                    channelName: decodedInfluencer,
+                    videoTitle: decodedVideoName,
+                }
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.message || '상품 후보 작업을 시작하지 못했습니다.');
+        }
+
+        const task = await response.json();
+        await pollAgentTask(task.taskId, clip, button);
+    } catch (error) {
+        console.error(error);
+        setReviewStatus('상품 후보 분석에 실패했습니다.');
+        renderReviewPlaceholder(error.message || '상품 후보 분석에 실패했습니다.');
+        button.disabled = false;
+        button.textContent = '상품 후보 찾기';
+    }
+}
+
+async function initializeSourceVideo() {
+    try {
+        const config = await getSourceVideoConfig();
+        sourceVideoUrl = config.url;
+
+        const sourceReady = await isUrlAvailable(sourceVideoUrl);
+        if (!sourceReady) {
+            if (!config.downloadEnabled) {
+                throw new Error('소스 영상 다운로드 트리거가 설정되지 않았습니다.');
+            }
+
+            loadingSpinner.style.display = 'block';
+            await requestSourceVideoDownload();
+        }
+
+        const resolvedUrl = await waitForUrlAvailability(sourceVideoUrl);
         console.log(`Video Downloaded! : ${resolvedUrl}`);
         loadingSpinner.style.display = 'none';
-        startLoad(URL);
-    })
-    .catch((error) => {
+        startLoad(resolvedUrl);
+    } catch (error) {
         console.error(`Failed to access URL: ${encodedUrl}`, error);
-    });
+        loadingSpinner.style.display = 'none';
+        setReviewStatus('소스 영상을 준비하지 못했습니다.');
+        renderReviewPlaceholder(error.message || '소스 영상을 준비하지 못했습니다.');
+    }
+}
+
+initializeSourceVideo();
 
 
 function startLoad(url) {
@@ -86,23 +376,10 @@ function videoLoaded() {
     }
     resizeCanvas(videoWidth, videoHeight + 25);
     startFrame = frameCount;
-    video.hide();
-    clipEndTime = video.duration().toFixed(2);
+        video.hide();
+    clipEndTime = Number(video.duration().toFixed(2));
 
-    checkClips('https://taewons3.s3.ap-northeast-2.amazonaws.com/' + encodeURIComponent(directoryName) + '/', 1)
-        .then((clips) => {
-            console.log(`clips : ${clips}`);
-            clipCount = clips;
-
-            try {
-                loadClips('https://taewons3.s3.ap-northeast-2.amazonaws.com/' + encodeURIComponent(directoryName) + '/', clipCount, true);
-            } catch (err) {
-                console.error('error loading clip', err);
-            }
-        })
-        .catch((error) => {
-            console.error(`Failed to access URL: ${encodedUrl}`, error);
-        });
+    refreshClipList();
 }
 
 
@@ -123,25 +400,31 @@ document.addEventListener('DOMContentLoaded', function () {
     const secondsButton = document.getElementById('secondsButton');
     const secondsInput = document.getElementById('secondsInput');
     const makeClipButton = document.getElementById('makeClipButton');
+    renderReviewPlaceholder('클립을 선택하면 상품 후보와 쇼핑 결과가 여기에 표시됩니다.');
+    refreshClipsButton.addEventListener('click', refreshClipList);
+
     function setSecond(event) {
         console.log('time set');
         event.preventDefault();
+        if (!video) {
+            return;
+        }
+
         let second = parseFloat(secondsInput.value);
         clipStartTime = video.time();
         console.log(second);
         clipEndTime = video.time() + second + 0.01;
     }
     function makeClip(event) {
-        clipCount++;
         event.preventDefault();
 
         console.log('directoryName: ', directoryName);
-        const URL = encodeURIComponent(directoryName + '.mp4');
+        const videoSrcKey = encodeURIComponent(directoryName + '.mp4');
 
         const clipData = {
             startTime: clipStartTime,
             endTime: clipEndTime,
-            videoSrc: URL,
+            videoSrc: videoSrcKey,
             channelId: channelID,
             videoUrl: encodedUrl,
             name: decodedVideoName
@@ -157,16 +440,11 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(response => response.json())
         .then(data => {
             console.log(data);
-            console.log('https://taewons3.s3.ap-northeast-2.amazonaws.com/' + encodeURIComponent(directoryName) + '/' + clipCount + '.mp4');
-
-            checkClips('https://taewons3.s3.ap-northeast-2.amazonaws.com/' + encodeURIComponent(directoryName) + '/', 1)
-                .then((clips) => {
-                    console.log(`clips : ${clips}`);
-                    loadClips('https://taewons3.s3.ap-northeast-2.amazonaws.com/' + encodeURIComponent(directoryName) + '/', clips);
-                })
-                .catch((error) => {
-                    console.error(`URL 접근 실패: ${encodedUrl}`, error);
-                });
+            pollForNewClip(clipRecords.length);
+        })
+        .catch((error) => {
+            console.error(error);
+            setReviewStatus('클립 생성 요청에 실패했습니다.');
         });
     }
     makeClipButton.addEventListener('click', makeClip);
@@ -254,9 +532,9 @@ function showBar(y) { // display video tools bar
     strokeWeight(4);
     stroke(150);
     line(0, y, width, y);
-    let Length = video.duration().toFixed(2);
+    let Length = Number(video.duration().toFixed(2));
 
-    let Current = video.time().toFixed(2);
+    let Current = Number(video.time().toFixed(2));
     let CurrentX = map(Current, 0, Length, 0, width);
 
 
@@ -277,7 +555,7 @@ function showBar(y) { // display video tools bar
     fill(255, 0, 0);
     ellipse(CurrentX, y, 8, 8);
 
-    if (!mouseIsPressed & video.time() > clipEndTime) {
+    if (!mouseIsPressed && video.time() > clipEndTime) {
         video.time(clipStartTime);
     }
 
@@ -308,73 +586,4 @@ function toMin(sec) {
     Min = Min.toString().padStart(2, '0');
     Sec = Sec.toString().padStart(2, '0');
     return Min + ':' + Sec;
-}
-function checkUrlAvailability(url) {
-    return new Promise((resolve) => {
-        fetch(url)
-            .then((response) => {
-                if (response.status === 200) {
-                    resolve(url); // Resolve the promise with the URL if it's accessible
-                } else {
-                    setTimeout(() => checkUrlAvailability(url).then(resolve), 300); //retry after 300 milisecond
-                }
-            })
-            .catch(() => {
-                setTimeout(() => checkUrlAvailability(url).then(resolve), 300);
-            });
-    });
-}
-
-
-
-function checkClips(url_till_clipCount, clips) { // check how many clips,, fetch from clip 1 ~ n(unavailable) -> return n-1
-    return new Promise((resolve) => {
-        fetch(url_till_clipCount + clips + '.mp4')
-            .then((response) => {
-                if (response.status === 200) {
-                    checkClips(url_till_clipCount, clips + 1).then(resolve);
-                } else {
-                    resolve(clips - 1);
-                }
-            })
-            .catch(() => {
-                resolve(clips - 1);
-            });
-    });
-}
-
-function loadClips(url_till_clipCount, clipNum, fromBeginning = false) { // load & display clips on right
-    const clipsDiv = document.getElementById('clipsDiv');
-
-    if (fromBeginning) {
-        for (let i = 0; i < clipNum; i++) {
-            const clipContainer = document.createElement('div');
-            clipContainer.classList.add('clipContainer');
-            let Video = document.createElement('video');
-            Video.src = url_till_clipCount + (i + 1) + '.mp4';
-            Video.controls = false;
-            Video.classList.add('clips');
-            const clipSpan = document.createElement('span');
-            clipSpan.textContent = "#" + (i + 1) + " [00:00 - 0:00]";
-            clipSpan.classList.add('clipSpan');
-            clipContainer.appendChild(Video);
-            clipContainer.appendChild(clipSpan);
-
-            clipsDiv.appendChild(clipContainer);
-        }
-    } else {
-        const clipContainer = document.createElement('div');
-        clipContainer.classList.add('clipContainer');
-        let Video = document.createElement('video');
-        Video.src = url_till_clipCount + (clipNum) + '.mp4';
-        Video.controls = false;
-        Video.classList.add('clips');
-        const clipSpan = document.createElement('span');
-        clipSpan.textContent = "#" + (clipNum) + " [00:00 - 0:00]";
-        clipSpan.classList.add('clipSpan');
-        clipContainer.appendChild(Video);
-        clipContainer.appendChild(clipSpan);
-
-        clipsDiv.appendChild(clipContainer);
-    }
 }

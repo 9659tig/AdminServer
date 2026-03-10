@@ -1,4 +1,7 @@
 import { randomUUID } from 'crypto';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import { logger } from '../../config/logger';
 import { FeedbackStore, feedbackStore } from '../memory/feedbackStore';
 import { RulePlanner } from '../planner/RulePlanner';
@@ -14,6 +17,7 @@ import {
     AgentTaskDetails,
     AgentTaskInput,
     AgentTaskRecord,
+    AgentTaskStepRecord,
     AgentTaskStatus,
     ReviewPayload,
 } from './types';
@@ -22,6 +26,7 @@ import { VisionProductTool } from '../tools/VisionProductTool';
 import { TranscriptExtractTool } from '../tools/TranscriptExtractTool';
 import { ShoppingSearchTool } from '../tools/ShoppingSearchTool';
 import { ProductExtractionWorkflow } from '../workflows/ProductExtractionWorkflow';
+import { VideoFrameExtractorTool } from '../tools/VideoFrameExtractorTool';
 
 export interface OrchestratorDependencies {
     taskStore: AgentTaskStore;
@@ -51,6 +56,7 @@ function createDefaultToolRegistry(): ToolRegistry {
     registry.register('shopping_search', shoppingTool);
     registry.register('product_extraction_workflow', productExtractionWorkflow);
     registry.register('prepare_review_payload', new PrepareReviewPayloadTool());
+    registry.register('video_frame_extractor', new VideoFrameExtractorTool());
     return registry;
 }
 
@@ -166,6 +172,11 @@ export class AgentOrchestrator {
             updatedAt: new Date().toISOString(),
             finishedAt: new Date().toISOString(),
         });
+
+        // 리뷰 완료 후 원본 영상 파일 삭제
+        if (task.input.localVideoPath) {
+            try { fs.rmSync(task.input.localVideoPath, { force: true }); } catch { /* ignore */ }
+        }
 
         logger.info({
             event: 'agent_task_review_applied',
@@ -285,17 +296,53 @@ export class AgentOrchestrator {
                     stepId: step.stepId,
                     err,
                 }, 'agent_step_failed');
+
+                // Cleanup on failure: tmpDirs only, preserve video for retry
+                const currentSteps = await this.deps.stepStore.getByTaskId(taskId);
+                this.cleanupTaskFiles(task.input, currentSteps, false);
                 return;
             }
         }
 
         const latestSteps = await this.deps.stepStore.getByTaskId(taskId);
         const finalOutput = latestSteps[latestSteps.length - 1]?.output;
+
         await this.transitionTask(task, 'NEEDS_REVIEW', {
             result: finalOutput,
             updatedAt: new Date().toISOString(),
             finishedAt: new Date().toISOString(),
         });
+        // 영상 파일은 리뷰 완료(reviewTask) 시점에 삭제; tmpDirs만 정리
+        this.cleanupTaskFiles(task.input, latestSteps, false);
+    }
+
+    private cleanupTaskFiles(
+        input: AgentTaskInput,
+        steps: AgentTaskStepRecord[],
+        cleanupVideoFile: boolean,
+    ): void {
+        // 프레임 tmpdir 정리
+        for (const step of steps) {
+            const output = step.output as Record<string, unknown> | undefined;
+            const tmpDirId = output?.tmpDirId;
+            if (typeof tmpDirId === 'string') {
+                const tmpDir = path.join(os.tmpdir(), `agent-frames-${tmpDirId}`);
+                try {
+                    fs.rmSync(tmpDir, { recursive: true, force: true });
+                } catch {
+                    // cleanup 실패는 무시
+                }
+            }
+        }
+
+        // 업로드된 원본 영상 파일 정리
+        if (cleanupVideoFile && input.localVideoPath) {
+            try {
+                fs.rmSync(input.localVideoPath, { force: true });
+            } catch {
+                // cleanup 실패는 무시
+            }
+        }
     }
 
     private async transitionTask(task: AgentTaskRecord, next: AgentTaskStatus, patch: Partial<AgentTaskRecord>): Promise<void> {

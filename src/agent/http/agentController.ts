@@ -3,17 +3,20 @@ import { agentOrchestrator, AgentOrchestrator } from '../core/orchestrator';
 import { AgentTaskInput, ReviewPayload } from '../core/types';
 import { DualRunService, dualRunService } from '../evaluation/dualRunService';
 import { GoldSetStore, goldSetStore } from '../evaluation/goldSetStore';
+import { CanaryService, canaryService } from '../rollout/canaryService';
 
 interface AgentControllerDeps {
     orchestrator: AgentOrchestrator;
     dualRunService: DualRunService;
     goldSetStore: GoldSetStore;
+    canaryService: CanaryService;
 }
 
 const defaultDeps: AgentControllerDeps = {
     orchestrator: agentOrchestrator,
     dualRunService,
     goldSetStore,
+    canaryService,
 };
 
 function respondAgentError(req: Request, res: Response, err: unknown): Response {
@@ -101,7 +104,13 @@ export function createAgentController(deps: AgentControllerDeps = defaultDeps) {
         reviewTask: async (req: Request, res: Response) => {
             try {
                 const { taskId } = req.validated.params as { taskId: string };
-                const payload = req.validated.body as ReviewPayload;
+                const body = req.validated.body as { approved: number[]; comment?: string };
+                const action = body.approved.length > 0 ? 'approve' : 'reject';
+                const payload: ReviewPayload = {
+                    action,
+                    editedFields: body.approved.length > 0 ? { approvedRanks: body.approved } : undefined,
+                    reason: body.comment || (action === 'reject' ? '관리자가 모든 상품을 거절했습니다.' : undefined),
+                };
                 const details = await deps.orchestrator.reviewTask(taskId, payload);
                 return res.json({
                     success: true,
@@ -156,6 +165,64 @@ export function createAgentController(deps: AgentControllerDeps = defaultDeps) {
                 });
             } catch (err) {
                 return respondAgentError(_req, res, err);
+            }
+        },
+        getCanaryConfig: async (_req: Request, res: Response) => {
+            try {
+                const config = await deps.canaryService.getConfig();
+                return res.json(config);
+            } catch (err) {
+                return respondAgentError(_req, res, err);
+            }
+        },
+        updateCanaryConfig: async (req: Request, res: Response) => {
+            try {
+                const patch = req.validated.body as {
+                    rolloutPercentage?: number;
+                    forceStrategy?: 'agent' | 'legacy';
+                };
+                const config = await deps.canaryService.updateConfig(patch);
+                return res.json(config);
+            } catch (err) {
+                return respondAgentError(req, res, err);
+            }
+        },
+        decideCanaryStrategy: async (req: Request, res: Response) => {
+            try {
+                const { routingKey } = req.validated.body as { routingKey: string };
+                const decision = await deps.canaryService.decide(routingKey);
+                return res.json(decision);
+            } catch (err) {
+                return respondAgentError(req, res, err);
+            }
+        },
+        extractFromVideo: async (req: Request, res: Response) => {
+            try {
+                const file = (req as Request & { file?: Express.Multer.File }).file;
+                if (!file) {
+                    return res.status(400).json({ error: '파일 없음', message: 'videoFile이 필요합니다.' });
+                }
+
+                const body = req.body as {
+                    channelCategory?: string;
+                    videoTitle?: string;
+                    channelName?: string;
+                };
+
+                const taskId = await deps.orchestrator.startTask({
+                    taskType: 'AUTO_PRODUCT_FROM_VIDEO',
+                    localVideoPath: file.path,
+                    channelCategory: body.channelCategory,
+                    clipContext: {
+                        videoTitle: body.videoTitle,
+                        channelName: body.channelName,
+                    },
+                });
+
+                req.log.info({ event: 'video_extract_task_created', taskId }, 'video_extract_task_created');
+                return res.status(202).json({ taskId, status: 'PENDING' });
+            } catch (err) {
+                return respondAgentError(req, res, err);
             }
         },
     };

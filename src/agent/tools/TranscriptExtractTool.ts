@@ -1,8 +1,14 @@
-import { OpenAIProvider, openAIProvider } from '../providers/llm/OpenAIProvider';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import { randomUUID } from 'crypto';
+import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
+import ffmpeg from 'fluent-ffmpeg';
+import { GroqProvider, groqProvider } from '../providers/llm/GroqProvider';
 import { TranscriptExtractionResult } from '../workflows/productTypes';
 
 interface TranscriptToolDeps {
-    provider?: Pick<OpenAIProvider, 'transcribe'>;
+    provider?: Pick<GroqProvider, 'transcribe'>;
     resolveAudioFile?: (input: Record<string, unknown>) => Promise<unknown | undefined>;
     fetchImpl?: typeof fetch;
 }
@@ -39,7 +45,7 @@ export class TranscriptExtractTool {
                 };
             }
 
-            const response = await (this.deps.provider ?? openAIProvider).transcribe({
+            const response = await (this.deps.provider ?? groqProvider).transcribe({
                 policy: 'transcribe-default',
                 file: audioFile,
                 language: 'ko',
@@ -79,6 +85,17 @@ export class TranscriptExtractTool {
             return resolvedByHook;
         }
 
+        // localVideoPath: vision confidence 부족 시 직접 오디오 추출
+        const localVideoPath = typeof input.localVideoPath === 'string'
+            ? input.localVideoPath.trim()
+            : typeof clipContext.localVideoPath === 'string'
+                ? clipContext.localVideoPath.trim()
+                : '';
+        if (localVideoPath && fs.existsSync(localVideoPath)) {
+            return this.extractAudioFromVideo(localVideoPath, input);
+        }
+
+        // clipLink URL fetch (기존 fallback)
         const clipLink = typeof clipContext.clipLink === 'string' ? clipContext.clipLink.trim() : '';
         if (!clipLink) {
             return undefined;
@@ -96,5 +113,36 @@ export class TranscriptExtractTool {
 
         const buffer = Buffer.from(await response.arrayBuffer());
         return new File([buffer], 'clip.mp4', { type: 'video/mp4' });
+    }
+
+    private async extractAudioFromVideo(
+        videoPath: string,
+        input: Record<string, unknown>,
+    ): Promise<File> {
+        ffmpeg.setFfmpegPath(ffmpegInstaller.path);
+
+        const startSec = typeof input.startSec === 'number' ? input.startSec : 0;
+        const endSec = typeof input.endSec === 'number' ? input.endSec : undefined;
+        const durationSec = endSec !== undefined ? endSec - startSec : undefined;
+
+        const tmpPath = path.join(os.tmpdir(), `transcript-audio-${randomUUID()}.mp3`);
+
+        await new Promise<void>((resolve, reject) => {
+            const cmd = ffmpeg(videoPath)
+                .inputOptions(durationSec !== undefined
+                    ? ['-ss', String(startSec), '-t', String(durationSec)]
+                    : ['-ss', String(startSec)],
+                )
+                .outputOptions(['-ac', '1', '-ar', '16000', '-q:a', '4'])
+                .noVideo()
+                .output(tmpPath)
+                .on('end', () => resolve())
+                .on('error', reject);
+            cmd.run();
+        });
+
+        const buffer = fs.readFileSync(tmpPath);
+        fs.rmSync(tmpPath, { force: true });
+        return new File([buffer], 'audio.mp3', { type: 'audio/mpeg' });
     }
 }

@@ -3,10 +3,11 @@ import '../../../config/env';
 export type ModelPolicyName = 'mini-default' | '4o-escalation' | 'transcribe-default';
 
 export type ModelPolicyMode = 'chat' | 'transcription';
+export type ModelPolicyProvider = 'openai' | 'gemini' | 'groq';
 
 export interface ModelPolicy {
     name: ModelPolicyName;
-    provider: 'openai';
+    provider: ModelPolicyProvider;
     mode: ModelPolicyMode;
     model: string;
     temperature: number;
@@ -18,25 +19,25 @@ type ModelPolicyPatch = Partial<Omit<ModelPolicy, 'name'>>;
 const defaultPolicies: Record<ModelPolicyName, ModelPolicy> = {
     'mini-default': {
         name: 'mini-default',
-        provider: 'openai',
+        provider: 'gemini',
         mode: 'chat',
-        model: process.env.OPENAI_MODEL_MINI_DEFAULT?.trim() || 'gpt-4o-mini',
-        temperature: 0.2,
-        maxOutputTokens: 400,
+        model: process.env.GEMINI_MODEL_DEFAULT?.trim() || 'gemini-2.5-flash',
+        temperature: 0.1,
+        maxOutputTokens: 4096,
     },
     '4o-escalation': {
         name: '4o-escalation',
-        provider: 'openai',
+        provider: 'gemini',
         mode: 'chat',
-        model: process.env.OPENAI_MODEL_4O_ESCALATION?.trim() || 'gpt-4o',
-        temperature: 0.2,
-        maxOutputTokens: 600,
+        model: process.env.GEMINI_MODEL_ESCALATION?.trim() || 'gemini-2.5-flash',
+        temperature: 0.1,
+        maxOutputTokens: 4096,
     },
     'transcribe-default': {
         name: 'transcribe-default',
-        provider: 'openai',
+        provider: 'groq',
         mode: 'transcription',
-        model: process.env.OPENAI_MODEL_TRANSCRIBE_DEFAULT?.trim() || 'gpt-4o-mini-transcribe',
+        model: process.env.GROQ_MODEL_TRANSCRIBE?.trim() || 'whisper-large-v3',
         temperature: 0,
     },
 };
