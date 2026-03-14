@@ -16,6 +16,8 @@ const envSchema = z.object({
     NAVER_CLIENT_SECRET: z.string().optional(),
     COUPANG_ACCESS_KEY: z.string().optional(),
     COUPANG_SECRET_KEY: z.string().optional(),
+    USER_SERVER_URL: z.string().url().optional(),
+    INTERNAL_SYNC_TOKEN: z.string().optional(),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;
