@@ -1,6 +1,7 @@
 import docClient from '../config/dynamo';
 import { PutItemCommand, QueryCommand } from "@aws-sdk/client-dynamodb";
 import { updateCategory } from '../service/videos'
+import { syncProduct } from '../utils/userServerSyncClient';
 
 async function getProductInfo(productLink: string) {
     const params = {
@@ -52,6 +53,22 @@ async function addProduct(clipLink: string, link: string, deeplink: string, imag
                 throw err
             }
         }
+        syncProduct({
+            id: clipLink,
+            clipLink,
+            productLink: link,
+            productDeepLink: deeplink,
+            productImages: images,
+            productName: name,
+            productBrand: brand,
+            productPrice: Number(price),
+            category,
+            videoId,
+            channelId,
+            metaInfo: meta,
+            views: 0,
+            purchases: 0,
+        });
     }catch(err){
         throw err
     }

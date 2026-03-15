@@ -1,6 +1,7 @@
 import docClient from '../config/dynamo';
 import { PutItemCommand, QueryCommand } from "@aws-sdk/client-dynamodb";
 import { Sns } from '../utils/interfaces/influencer.interface';
+import { syncInfluencer } from '../utils/userServerSyncClient';
 
 async function getInfluencer(channelID: string): Promise<boolean> {
     const params = {
@@ -38,6 +39,13 @@ async function addInfluencer(channel_ID: string, channel_link: string, channel_d
     try{
         const command = new PutItemCommand(params);
         await docClient.send(command);
+        syncInfluencer({
+            id: channel_ID,
+            channelId: channel_ID,
+            channelName: channel_name,
+            channelProfile: pfp_url,
+            subscriberCount,
+        });
         return true
     }catch(err){
         throw err
