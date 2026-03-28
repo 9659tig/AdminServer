@@ -1,3 +1,4 @@
+import { logger } from '../../config/logger';
 import { SourceScoreStore, sourceScoreStore } from '../evaluation/sourceScoreStore';
 import { ProductExtractionResult, VerifierDecision } from '../workflows/productTypes';
 
@@ -26,24 +27,54 @@ export class VerifierAgent {
                 };
             });
 
+        logger.info({
+            event: 'verifier_check_start',
+            inputConfidence: result.confidence,
+            evidenceCount: result.evidence.length,
+            shoppingCount: result.shoppingResults.length,
+            hasSelectedProduct: Boolean(result.selectedProduct),
+            sourceScoreSnapshot,
+        }, `   🔎 [Verifier] 검증 조건 평가 시작 — input confidence: ${result.confidence}`);
+
         if (!result.selectedProduct) {
             reasons.push('selected_product_missing');
             adjustedConfidence = 0;
+            logger.warn({
+                event: 'verifier_penalty',
+                rule: 'selected_product_missing',
+                penalty: 'confidence → 0',
+            }, `   ⛔ [Verifier] 선택된 상품 없음 → confidence를 0으로 설정`);
         }
 
         if (result.evidence.length < 2) {
             reasons.push('insufficient_evidence_sources');
             adjustedConfidence -= 0.2;
+            logger.warn({
+                event: 'verifier_penalty',
+                rule: 'insufficient_evidence_sources',
+                penalty: -0.2,
+                evidenceCount: result.evidence.length,
+            }, `   📉 [Verifier] evidence 소스 부족 (${result.evidence.length}개 < 2개) → -0.20`);
         }
 
         if (result.shoppingResults.length === 0) {
             reasons.push('shopping_confirmation_missing');
             adjustedConfidence -= 0.15;
+            logger.warn({
+                event: 'verifier_penalty',
+                rule: 'shopping_confirmation_missing',
+                penalty: -0.15,
+            }, `   📉 [Verifier] 쇼핑 검색 결과 없음 → -0.15`);
         }
 
         if (result.legacyComparison && !result.legacyComparison.matched) {
             reasons.push('legacy_comparison_mismatch');
             adjustedConfidence -= 0.1;
+            logger.warn({
+                event: 'verifier_penalty',
+                rule: 'legacy_comparison_mismatch',
+                penalty: -0.1,
+            }, `   📉 [Verifier] legacy 후보 불일치 → -0.10`);
         }
 
         if (sourceScoreSnapshot.length) {
@@ -51,8 +82,25 @@ export class VerifierAgent {
             if (averageSourceScore < 0.45) {
                 reasons.push('low_source_score_confidence');
                 adjustedConfidence -= 0.15;
+                logger.warn({
+                    event: 'verifier_penalty',
+                    rule: 'low_source_score_confidence',
+                    penalty: -0.15,
+                    averageSourceScore: Number(averageSourceScore.toFixed(2)),
+                }, `   📉 [Verifier] SourceScore 평균(${averageSourceScore.toFixed(2)}) < 0.45 → -0.15`);
             } else if (averageSourceScore > 0.8) {
                 adjustedConfidence += 0.05;
+                logger.info({
+                    event: 'verifier_bonus',
+                    rule: 'high_source_score',
+                    bonus: 0.05,
+                    averageSourceScore: Number(averageSourceScore.toFixed(2)),
+                }, `   📈 [Verifier] SourceScore 평균(${averageSourceScore.toFixed(2)}) > 0.80 → +0.05`);
+            } else {
+                logger.info({
+                    event: 'verifier_sourcescore_neutral',
+                    averageSourceScore: Number(averageSourceScore.toFixed(2)),
+                }, `   ➖ [Verifier] SourceScore 평균(${averageSourceScore.toFixed(2)}) — 조정 없음`);
             }
         }
 
@@ -61,6 +109,15 @@ export class VerifierAgent {
         const status = adjustedConfidence >= this.approvalThreshold && result.shoppingResults.length > 0
             ? 'READY_FOR_REVIEW'
             : 'NEEDS_REVIEW';
+
+        logger.info({
+            event: 'verifier_decision',
+            inputConfidence: result.confidence,
+            adjustedConfidence,
+            approvalThreshold: this.approvalThreshold,
+            status,
+            reasons,
+        }, `   🏷️ [Verifier] 최종 판정 — ${result.confidence} → ${adjustedConfidence} | 임계값: ${this.approvalThreshold} | 결과: ${status}${reasons.length ? ` | 감점 사유: ${reasons.join(', ')}` : ' | 감점 없음'}`);
 
         return {
             status,
