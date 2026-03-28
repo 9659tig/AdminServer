@@ -4,6 +4,7 @@ import path from 'path';
 import { randomUUID } from 'crypto';
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import ffmpeg from 'fluent-ffmpeg';
+import { logger } from '../../config/logger';
 import { GroqProvider, groqProvider } from '../providers/llm/GroqProvider';
 import { TranscriptExtractionResult } from '../workflows/productTypes';
 
@@ -26,6 +27,11 @@ export class TranscriptExtractTool {
             : '';
 
         if (spokenText) {
+            logger.info({
+                event: 'transcript_source_provided',
+                textLength: spokenText.length,
+                confidence: 0.95,
+            }, `   📝 [Transcript] 제공된 텍스트 사용 — ${spokenText.length}자 | confidence: 0.95`);
             return {
                 text: spokenText,
                 source: 'provided_text',
@@ -37,6 +43,9 @@ export class TranscriptExtractTool {
         try {
             const audioFile = await this.resolveAudioFile(input, clipContext);
             if (!audioFile) {
+                logger.warn({
+                    event: 'transcript_no_source',
+                }, `   ⚠️ [Transcript] 사용 가능한 오디오 소스 없음`);
                 return {
                     text: '',
                     source: 'unavailable',
@@ -45,12 +54,26 @@ export class TranscriptExtractTool {
                 };
             }
 
+            logger.info({
+                event: 'transcript_whisper_start',
+                policy: 'transcribe-default',
+                language: 'ko',
+            }, `   🎧 [Transcript] Groq Whisper 전사 시작 — 모델: whisper-large-v3 | 언어: ko`);
+
+            const whisperStart = Date.now();
             const response = await (this.deps.provider ?? groqProvider).transcribe({
                 policy: 'transcribe-default',
                 file: audioFile,
                 language: 'ko',
                 temperature: 0,
             });
+
+            logger.info({
+                event: 'transcript_whisper_done',
+                elapsedMs: Date.now() - whisperStart,
+                textLength: response.text.length,
+                confidence: 0.75,
+            }, `   🎧 [Transcript] Whisper 전사 완료 (${Date.now() - whisperStart}ms) — ${response.text.length}자 | confidence: 0.75`);
 
             return {
                 text: response.text,
@@ -59,6 +82,10 @@ export class TranscriptExtractTool {
                 warnings: [],
             };
         } catch (err) {
+            logger.error({
+                event: 'transcript_failed',
+                error: err instanceof Error ? err.message : String(err),
+            }, `   ❌ [Transcript] 전사 실패 — ${err instanceof Error ? err.message : String(err)}`);
             return {
                 text: '',
                 source: 'unavailable',

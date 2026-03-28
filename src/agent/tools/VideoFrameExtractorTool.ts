@@ -4,6 +4,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { randomUUID } from 'crypto';
+import { logger } from '../../config/logger';
 import { AgentTool } from './types';
 
 export class VideoFrameExtractorTool implements AgentTool {
@@ -26,12 +27,33 @@ export class VideoFrameExtractorTool implements AgentTool {
         fs.mkdirSync(tmpDir, { recursive: true });
 
         try {
+            logger.info({
+                event: 'frame_extractor_start',
+                videoPath: localVideoPath,
+                startSec,
+                durationSec,
+                frameIntervalSec,
+                maxFrames,
+            }, `🎬 [FrameExtractor] 프레임 추출 시작 — 영상 길이: ${durationSec.toFixed(1)}초 | ${frameIntervalSec}초 간격 | 최대 ${maxFrames}프레임`);
+
+            const extractStart = Date.now();
             await this.extractFrames(localVideoPath, startSec, durationSec, frameIntervalSec, maxFrames, tmpDir);
             const imageUrls = this.readFramesAsBase64(tmpDir);
+
+            logger.info({
+                event: 'frame_extractor_done',
+                elapsedMs: Date.now() - extractStart,
+                frameCount: imageUrls.length,
+                durationSec,
+            }, `🎬 [FrameExtractor] 완료 (${Date.now() - extractStart}ms) — ${imageUrls.length}프레임 추출됨 (base64 인코딩)`);
 
             // 오디오는 추출하지 않음 — vision confidence 부족 시 TranscriptExtractTool이 직접 추출
             return { imageUrls, durationSec, tmpDirId };
         } catch (err) {
+            logger.error({
+                event: 'frame_extractor_failed',
+                error: err instanceof Error ? err.message : String(err),
+            }, `❌ [FrameExtractor] 프레임 추출 실패 — ${err instanceof Error ? err.message : String(err)}`);
             fs.rmSync(tmpDir, { recursive: true, force: true });
             throw err;
         }

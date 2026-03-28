@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { logger } from '../../config/logger';
 import { GeminiProvider, geminiProvider } from '../providers/llm/GeminiProvider';
 import { ProductCandidate, VisionProductResult } from '../workflows/productTypes';
 
@@ -72,10 +73,36 @@ export class VisionProductTool {
             };
         }
 
+        logger.info({
+            event: 'vision_primary_start',
+            policy: 'mini-default',
+            imageCount: imageUrls.length,
+        }, `   🔬 [Vision] mini-default 정책으로 1차 분석 (이미지 ${imageUrls.length}장)`);
+
         const primary = await this.executePolicy('mini-default', imageUrls, input);
         const topPrimaryConfidence = primary.products[0]?.confidence ?? 0;
 
+        logger.info({
+            event: 'vision_primary_done',
+            topConfidence: topPrimaryConfidence,
+            productCount: primary.products.length,
+            threshold: this.escalationThreshold,
+        }, `   🔬 [Vision] 1차 결과 — confidence: ${topPrimaryConfidence} | 상품 ${primary.products.length}개`);
+
         if (topPrimaryConfidence >= this.escalationThreshold || !primary.products.length) {
+            if (topPrimaryConfidence >= this.escalationThreshold) {
+                logger.info({
+                    event: 'vision_escalation_skip',
+                    reason: 'confidence_sufficient',
+                    confidence: topPrimaryConfidence,
+                    threshold: this.escalationThreshold,
+                }, `   ✅ [Vision] 에스컬레이션 불필요 — confidence(${topPrimaryConfidence}) ≥ 임계값(${this.escalationThreshold})`);
+            } else {
+                logger.warn({
+                    event: 'vision_no_products',
+                    reason: 'no_products_found',
+                }, `   ⚠️ [Vision] 상품 미발견 — 에스컬레이션 없이 반환`);
+            }
             return {
                 ...primary,
                 policyUsed: 'mini-default',
@@ -83,8 +110,21 @@ export class VisionProductTool {
             };
         }
 
+        logger.info({
+            event: 'vision_escalation_start',
+            reason: `confidence(${topPrimaryConfidence}) < 임계값(${this.escalationThreshold})`,
+            policy: '4o-escalation',
+        }, `   ⬆️ [Vision] 에스컬레이션 실행 — confidence(${topPrimaryConfidence}) < 임계값(${this.escalationThreshold}) → 4o-escalation 정책으로 재분석`);
+
         const escalated = await this.executePolicy('4o-escalation', imageUrls, input);
         const topEscalatedConfidence = escalated.products[0]?.confidence ?? 0;
+
+        logger.info({
+            event: 'vision_escalation_done',
+            primaryConfidence: topPrimaryConfidence,
+            escalatedConfidence: topEscalatedConfidence,
+            selectedPolicy: topEscalatedConfidence >= topPrimaryConfidence ? '4o-escalation' : 'mini-default',
+        }, `   ⬆️ [Vision] 에스컬레이션 결과 — primary: ${topPrimaryConfidence} vs escalated: ${topEscalatedConfidence} → ${topEscalatedConfidence >= topPrimaryConfidence ? '4o-escalation 채택' : 'mini-default 유지'}`);
 
         if (topEscalatedConfidence >= topPrimaryConfidence) {
             return {

@@ -95,6 +95,17 @@ export class AgentOrchestrator {
             taskType: input.taskType,
         }, 'agent_task_created');
 
+        logger.info({
+            event: 'pipeline_start',
+            taskId,
+            taskType: input.taskType,
+            planVersion: plan.version,
+            totalSteps: plan.steps.length,
+            stepSequence: plan.steps.map((s) => s.stepId),
+            category: input.channelCategory ?? 'none',
+            hasVideoFile: Boolean(input.localVideoPath),
+        }, `🚀 [Pipeline] Task 생성 완료 — ${input.taskType} | ${plan.steps.length}단계 플랜(${plan.version}) | 카테고리: ${input.channelCategory ?? 'none'}`);
+
         setImmediate(() => {
             this.executeTask(taskId).catch((err) => {
                 logger.error({
@@ -184,6 +195,15 @@ export class AgentOrchestrator {
             action: payload.action,
         }, 'agent_task_review_applied');
 
+        logger.info({
+            event: 'pipeline_review',
+            taskId,
+            action: payload.action,
+            nextStatus: nextStatus,
+            hasEditedFields: Boolean(payload.editedFields),
+            hasReason: Boolean(payload.reason),
+        }, `📋 [Review] ${payload.action.toUpperCase()} → 상태: ${nextStatus} | 코멘트: ${payload.reason ? '있음' : '없음'}`);
+
         const updated = await this.getTaskDetails(taskId);
         if (!updated) {
             throw new Error('Task not found after review');
@@ -195,11 +215,26 @@ export class AgentOrchestrator {
         });
         if (goldSetExample) {
             await this.deps.goldSetStore.add(goldSetExample);
+            logger.info({
+                event: 'pipeline_goldset_added',
+                taskId,
+                category: goldSetExample.category,
+                expectedProduct: goldSetExample.expectedProduct,
+                candidateCount: goldSetExample.candidateNames.length,
+            }, `📚 [Feedback] GoldSet에 추가 — 카테고리: ${goldSetExample.category} | 정답: ${goldSetExample.expectedProduct} | 후보 ${goldSetExample.candidateNames.length}개`);
         }
 
         const evidenceSources = getEvidenceSources(updated);
+        const learningScore = getLearningScoreForReview(payload.action);
         if (evidenceSources.length) {
-            await this.deps.sourceScoreStore.applyOutcome(evidenceSources, getLearningScoreForReview(payload.action));
+            await this.deps.sourceScoreStore.applyOutcome(evidenceSources, learningScore);
+            logger.info({
+                event: 'pipeline_sourcescore_updated',
+                taskId,
+                sources: evidenceSources,
+                score: learningScore,
+                action: payload.action,
+            }, `📊 [Feedback] SourceScore 업데이트 — ${evidenceSources.join(', ')} | 점수: ${learningScore} (${payload.action})`);
         }
 
         return updated;
@@ -252,6 +287,15 @@ export class AgentOrchestrator {
                 tool: step.tool,
             }, 'agent_step_started');
 
+            logger.info({
+                event: 'pipeline_step_start',
+                taskId,
+                stepId: step.stepId,
+                stepIndex: index + 1,
+                totalSteps: steps.length,
+                tool: step.tool,
+            }, `⏩ [Step ${index + 1}/${steps.length}] "${step.stepId}" 시작 — Tool: ${step.tool}`);
+
             await this.deps.stepStore.update(taskId, step.stepId, {
                 status: 'RUNNING',
                 startedAt,
@@ -277,6 +321,16 @@ export class AgentOrchestrator {
                     taskId,
                     stepId: step.stepId,
                 }, 'agent_step_done');
+
+                const elapsed = Date.now() - new Date(startedAt).getTime();
+                logger.info({
+                    event: 'pipeline_step_done',
+                    taskId,
+                    stepId: step.stepId,
+                    stepIndex: index + 1,
+                    totalSteps: steps.length,
+                    elapsedMs: elapsed,
+                }, `✅ [Step ${index + 1}/${steps.length}] "${step.stepId}" 완료 — ${elapsed}ms 소요`);
             } catch (err) {
                 const errorMessage = err instanceof Error ? err.message : String(err);
                 await this.deps.stepStore.update(taskId, step.stepId, {
@@ -297,6 +351,14 @@ export class AgentOrchestrator {
                     err,
                 }, 'agent_step_failed');
 
+                logger.error({
+                    event: 'pipeline_step_failed',
+                    taskId,
+                    stepId: step.stepId,
+                    stepIndex: index + 1,
+                    error: errorMessage,
+                }, `❌ [Step ${index + 1}/${steps.length}] "${step.stepId}" 실패 — ${errorMessage}`);
+
                 // Cleanup on failure: tmpDirs only, preserve video for retry
                 const currentSteps = await this.deps.stepStore.getByTaskId(taskId);
                 this.cleanupTaskFiles(task.input, currentSteps, false);
@@ -312,6 +374,18 @@ export class AgentOrchestrator {
             updatedAt: new Date().toISOString(),
             finishedAt: new Date().toISOString(),
         });
+
+        const totalElapsed = Date.now() - new Date(task.startedAt ?? task.createdAt).getTime();
+        const extraction = (finalOutput as Record<string, unknown> | undefined)?.extraction as Record<string, unknown> | undefined;
+        logger.info({
+            event: 'pipeline_complete',
+            taskId,
+            totalElapsedMs: totalElapsed,
+            finalStatus: extraction?.status,
+            confidence: extraction?.confidence,
+            recommendation: extraction?.recommendation,
+            selectedProduct: (extraction?.selectedProduct as Record<string, unknown> | undefined)?.name,
+        }, `🏁 [Pipeline] 완료 — ${totalElapsed}ms 소요 | confidence: ${extraction?.confidence} | 상태: ${extraction?.status} | 추천: ${extraction?.recommendation}`);
         // 영상 파일은 리뷰 완료(reviewTask) 시점에 삭제; tmpDirs만 정리
         this.cleanupTaskFiles(task.input, latestSteps, false);
     }
