@@ -8,7 +8,7 @@ import { RulePlanner } from '../planner/RulePlanner';
 import { ToolRegistry } from '../tools/toolRegistry';
 import { goldSetStore, GoldSetStore } from '../evaluation/goldSetStore';
 import { sourceScoreStore, SourceScoreStore } from '../evaluation/sourceScoreStore';
-import { buildGoldSetExample, buildTaskEvidenceView, getEvidenceSources, getLearningScoreForReview } from '../evaluation/taskArtifacts';
+import { buildGoldSetExamplesFromCandidates, buildTaskEvidenceView, extractProductExtraction, getEvidenceSources, getLearningScoreForReview } from '../evaluation/taskArtifacts';
 import { AgentStepStore, agentStepStore } from './stepStore';
 import { assertTaskTransition } from './stateMachine';
 import { AgentTaskStore, agentTaskStore } from './taskStore';
@@ -209,32 +209,57 @@ export class AgentOrchestrator {
             throw new Error('Task not found after review');
         }
 
-        const goldSetExample = buildGoldSetExample({
+        const goldSetExamples = buildGoldSetExamplesFromCandidates({
             details: updated,
             payload,
         });
-        if (goldSetExample) {
-            await this.deps.goldSetStore.add(goldSetExample);
+        for (const example of goldSetExamples) {
+            await this.deps.goldSetStore.add(example);
             logger.info({
                 event: 'pipeline_goldset_added',
                 taskId,
-                category: goldSetExample.category,
-                expectedProduct: goldSetExample.expectedProduct,
-                candidateCount: goldSetExample.candidateNames.length,
-            }, `📚 [Feedback] GoldSet에 추가 — 카테고리: ${goldSetExample.category} | 정답: ${goldSetExample.expectedProduct} | 후보 ${goldSetExample.candidateNames.length}개`);
+                category: example.category,
+                expectedProduct: example.expectedProduct,
+                candidateCount: example.candidateNames.length,
+            }, `📚 [Feedback] GoldSet에 추가 — 카테고리: ${example.category} | 정답: ${example.expectedProduct} | 후보 ${example.candidateNames.length}개`);
         }
 
-        const evidenceSources = getEvidenceSources(updated);
         const learningScore = getLearningScoreForReview(payload.action);
-        if (evidenceSources.length) {
-            await this.deps.sourceScoreStore.applyOutcome(evidenceSources, learningScore);
-            logger.info({
-                event: 'pipeline_sourcescore_updated',
-                taskId,
-                sources: evidenceSources,
-                score: learningScore,
-                action: payload.action,
-            }, `📊 [Feedback] SourceScore 업데이트 — ${evidenceSources.join(', ')} | 점수: ${learningScore} (${payload.action})`);
+        const extraction = extractProductExtraction(updated);
+
+        // 승인된 후보 각각의 evidence source에 대해 SourceScore 업데이트
+        const approvedList = payload.approved ?? [];
+        if (approvedList.length > 0) {
+            for (const approval of approvedList) {
+                const cr = extraction?.candidateResults?.[approval.candidateIndex];
+                if (cr) {
+                    const sources = cr.evidence.map((e) => e.sourceType);
+                    if (sources.length) {
+                        await this.deps.sourceScoreStore.applyOutcome(sources, learningScore);
+                        logger.info({
+                            event: 'pipeline_sourcescore_updated',
+                            taskId,
+                            sources,
+                            score: learningScore,
+                            action: payload.action,
+                            candidateIndex: approval.candidateIndex,
+                        }, `📊 [Feedback] SourceScore 업데이트 — ${sources.join(', ')} | 점수: ${learningScore} (${payload.action})`);
+                    }
+                }
+            }
+        } else {
+            // reject 또는 approved 없는 경우: 전체 evidence sources 기준으로 업데이트
+            const evidenceSources = getEvidenceSources(updated);
+            if (evidenceSources.length) {
+                await this.deps.sourceScoreStore.applyOutcome(evidenceSources, learningScore);
+                logger.info({
+                    event: 'pipeline_sourcescore_updated',
+                    taskId,
+                    sources: evidenceSources,
+                    score: learningScore,
+                    action: payload.action,
+                }, `📊 [Feedback] SourceScore 업데이트 — ${evidenceSources.join(', ')} | 점수: ${learningScore} (${payload.action})`);
+            }
         }
 
         return updated;

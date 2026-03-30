@@ -95,3 +95,39 @@ export function getEvidenceSources(details: AgentTaskDetails): ProductEvidence['
     const extraction = extractProductExtraction(details);
     return extraction?.evidence.map((evidence) => evidence.sourceType) ?? [];
 }
+
+export function buildGoldSetExamplesFromCandidates(
+    record: ReviewLearningRecord,
+): GoldSetExample[] {
+    const extraction = extractProductExtraction(record.details);
+    if (!extraction || !extraction.candidateResults) {
+        // fallback: 기존 단일 로직
+        const single = buildGoldSetExample(record);
+        return single ? [single] : [];
+    }
+
+    const approved = record.payload.approved ?? [];
+    if (approved.length === 0 || record.payload.action === 'reject') {
+        return [];
+    }
+
+    return approved
+        .map((approval) => {
+            const cr = extraction.candidateResults![approval.candidateIndex];
+            if (!cr) return undefined;
+
+            return {
+                exampleId: randomUUID(),
+                taskId: record.details.task.taskId,
+                reviewAction: record.payload.action,
+                expectedProduct: cr.candidate.name,
+                category: cr.candidate.category,
+                taskInput: record.details.task.input,
+                candidateNames: extraction.allCandidates.map((c) => c.name),
+                evidenceSources: cr.evidence.map((e) => e.sourceType),
+                confidence: cr.confidence,
+                createdAt: new Date().toISOString(),
+            } as GoldSetExample;
+        })
+        .filter((ex): ex is GoldSetExample => ex !== undefined);
+}
