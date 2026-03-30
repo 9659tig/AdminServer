@@ -111,9 +111,10 @@ export function buildGoldSetExamplesFromCandidates(
         return [];
     }
 
+    const candidateResults = extraction.candidateResults;
     return approved
         .map((approval) => {
-            const cr = extraction.candidateResults![approval.candidateIndex];
+            const cr = candidateResults[approval.candidateIndex];
             if (!cr) return undefined;
 
             return {
