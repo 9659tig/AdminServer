@@ -439,6 +439,7 @@ main {
   margin-bottom: 0.75rem;
   transition: border-color .15s;
 }
+.candidate-group.pending { border-color: #e5e7eb; background: #fff; }
 .candidate-group.approved { border-color: #22c55e; background: #f0fdf4; }
 .candidate-group.rejected { border-color: #ef4444; background: #fef2f2; }
 

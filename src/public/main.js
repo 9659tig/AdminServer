@@ -213,7 +213,7 @@ function renderCandidateGroups(candidateResults) {
         if (!productDecisions[idx]) {
             productDecisions[idx] = {
                 decision: 'pending',
-                selectedShoppingRank: cr.shoppingResults[0]?.rank ?? null,
+                selectedShoppingRank: cr.shoppingResults?.[0]?.rank ?? null,
             };
         }
 
@@ -233,8 +233,9 @@ function renderCandidateGroups(candidateResults) {
                 const price = s.price ? `₩${Number(s.price).toLocaleString()}` : '';
                 const source = s.source === 'naver' ? '네이버' : s.source === 'coupang' ? '쿠팡' : '';
                 const meta = [price, source].filter(Boolean).join(' · ');
-                const link = s.productUrl
-                    ? `<a class="shopping-item-link" href="${escHtml(s.productUrl)}" target="_blank" rel="noopener">보기↗</a>`
+                const safeUrl = s.productUrl && /^https?:\/\//i.test(s.productUrl) ? s.productUrl : null;
+                const link = safeUrl
+                    ? `<a class="shopping-item-link" href="${escHtml(safeUrl)}" target="_blank" rel="noopener">보기↗</a>`
                     : '';
                 return `<label class="shopping-item${selected}">
                     <input type="radio" name="${radioName}" value="${s.rank}" ${checked} data-idx="${idx}" data-rank="${s.rank}">
@@ -283,7 +284,7 @@ function renderCandidateGroups(candidateResults) {
                 productDecisions[idx].selectedShoppingRank = rank;
             }
             // 선택 시각화 업데이트
-            const group = productList.querySelector(`[data-idx="${idx}"]`);
+            const group = productList.querySelector(`.candidate-group[data-idx="${idx}"]`);
             if (group) {
                 group.querySelectorAll('.shopping-item').forEach((item) => item.classList.remove('selected'));
                 radio.closest('.shopping-item').classList.add('selected');
@@ -295,10 +296,10 @@ function renderCandidateGroups(candidateResults) {
 function setCandidateDecision(idx, decision) {
     if (productDecisions[idx]) {
         productDecisions[idx].decision = decision;
-    }
-    const group = productList.querySelector(`[data-idx="${idx}"]`);
-    if (group) {
-        group.className = 'candidate-group ' + decision;
+        const group = productList.querySelector(`.candidate-group[data-idx="${idx}"]`);
+        if (group) {
+            group.className = 'candidate-group ' + decision;
+        }
     }
 }
 
