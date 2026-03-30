@@ -64,10 +64,6 @@ function normalizeContext(input: Record<string, unknown>): WorkflowContext {
     };
 }
 
-function pickBestCandidate(candidates: ProductCandidate[]): ProductCandidate | undefined {
-    return [...candidates].sort((a, b) => b.confidence - a.confidence)[0];
-}
-
 function mergeCandidates(candidates: Array<ProductCandidate | undefined>): ProductCandidate[] {
     const byKey = new Map<string, ProductCandidate>();
 
@@ -346,6 +342,7 @@ export class ProductExtractionWorkflow implements AgentTool {
         const shoppingStart = Date.now();
         const candidateResults: CandidateResult[] = await Promise.all(
             eligibleCandidates.map(async (candidate) => {
+                const candidateShoppingStart = Date.now();
                 let candidateShoppingResults: ShoppingSearchResult[] = [];
                 const searchQuery = candidate.searchQuery || candidate.name;
 
@@ -362,7 +359,7 @@ export class ProductExtractionWorkflow implements AgentTool {
 
                     logger.info({
                         event: 'workflow_shopping_done',
-                        elapsedMs: Date.now() - shoppingStart,
+                        elapsedMs: Date.now() - candidateShoppingStart,
                         query: searchQuery,
                         resultCount: candidateShoppingResults.length,
                         source: candidateShoppingResults[0]?.source ?? 'none',
