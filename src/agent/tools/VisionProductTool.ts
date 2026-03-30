@@ -48,7 +48,7 @@ function buildVisionPrompt(input: VisionToolInput): string {
         `영상 제목: ${input.videoTitle ?? 'unknown'}`,
         `영상 URL: ${input.videoUrl ?? 'unknown'}`,
         `기존 후보: ${hints}`,
-        '이미지에서 보이는 상품을 최대 3개까지 식별하세요.',
+        '이미지에서 보이는 상품을 모두 식별하세요.',
         '가격은 추론하지 말고, 확신이 낮으면 confidence를 낮게 주세요.',
     ].join('\n');
 }
