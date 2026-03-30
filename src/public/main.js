@@ -181,101 +181,133 @@ async function loadEvidence(taskId) {
         if (!res.ok) return;
         const data = await res.json();
 
-        const products = extractProducts(data);
-        if (products.length === 0) return;
+        const candidates = extractCandidateResults(data);
+        if (candidates.length === 0) return;
 
         reviewPanel.hidden = false;
-        renderProducts(products);
+        renderCandidateGroups(candidates);
     } catch (_) {}
 }
 
-function extractProducts(evidence) {
+function extractCandidateResults(evidence) {
     if (!evidence || typeof evidence !== 'object') return [];
-
-    // 실제 구조: { extraction: { shoppingResults, allCandidates }, ... }
     const extraction = evidence.extraction || {};
-
-    // 1순위: 쇼핑 검색 결과 (가격·링크 포함)
+    if (Array.isArray(extraction.candidateResults) && extraction.candidateResults.length > 0) {
+        return extraction.candidateResults;
+    }
+    // fallback: 기존 shoppingResults 평면 구조 (하위 호환)
     if (Array.isArray(extraction.shoppingResults) && extraction.shoppingResults.length > 0) {
-        return extraction.shoppingResults;
+        return [{
+            candidate: extraction.selectedProduct || { name: '상품 후보', confidence: 0 },
+            shoppingResults: extraction.shoppingResults,
+            evidence: extraction.evidence || [],
+            confidence: extraction.confidence || 0,
+        }];
     }
-
-    // 2순위: vision 후보 (쇼핑 결과 없을 때)
-    if (Array.isArray(extraction.allCandidates) && extraction.allCandidates.length > 0) {
-        return extraction.allCandidates.map((c, i) => ({
-            productName: c.name,
-            productUrl: '',
-            price: undefined,
-            reviewCount: 0,
-            imageUrl: undefined,
-            rank: i + 1,
-            source: 'vision',
-        }));
-    }
-
     return [];
 }
 
-function renderProducts(products) {
+function renderCandidateGroups(candidateResults) {
     productList.innerHTML = '';
-    products.forEach((p, i) => {
-        const key = p.rank ?? i;
-        if (!productDecisions[key]) productDecisions[key] = 'pending';
+    candidateResults.forEach((cr, idx) => {
+        if (!productDecisions[idx]) {
+            productDecisions[idx] = {
+                decision: 'pending',
+                selectedShoppingRank: cr.shoppingResults[0]?.rank ?? null,
+            };
+        }
 
-        const card = document.createElement('div');
-        card.className = 'product-card ' + productDecisions[key];
-        card.dataset.key = key;
+        const group = document.createElement('div');
+        group.className = 'candidate-group ' + productDecisions[idx].decision;
+        group.dataset.idx = idx;
 
-        const thumb = p.imageUrl
-            ? `<img class="product-thumb" src="${p.imageUrl}" alt="" onerror="this.style.display='none'">`
-            : `<div class="product-thumb-placeholder">&#128248;</div>`;
+        const brandText = cr.candidate.brand ? ` (${escHtml(cr.candidate.brand)})` : '';
+        const conf = typeof cr.confidence === 'number' ? cr.confidence.toFixed(2) : '?';
 
-        const price = p.price ? `₩${Number(p.price).toLocaleString()}` : '가격 정보 없음';
-        const reviews = p.reviewCount ? `리뷰 ${p.reviewCount.toLocaleString()}개` : '';
-        const sourceName = p.source === 'naver' ? '네이버' : p.source === 'coupang' ? '쿠팡' : '';
-        const meta = [price, reviews, sourceName].filter(Boolean).join(' · ');
-        const linkHtml = p.productUrl
-            ? `<a class="product-link" href="${escHtml(p.productUrl)}" target="_blank" rel="noopener">상품 보기 &#8599;</a>`
-            : '';
+        let shoppingHtml = '';
+        if (cr.shoppingResults.length > 0) {
+            const radioName = `shopping-${idx}`;
+            shoppingHtml = '<div class="shopping-list">' + cr.shoppingResults.map((s) => {
+                const checked = s.rank === productDecisions[idx].selectedShoppingRank ? 'checked' : '';
+                const selected = checked ? ' selected' : '';
+                const price = s.price ? `₩${Number(s.price).toLocaleString()}` : '';
+                const source = s.source === 'naver' ? '네이버' : s.source === 'coupang' ? '쿠팡' : '';
+                const meta = [price, source].filter(Boolean).join(' · ');
+                const link = s.productUrl
+                    ? `<a class="shopping-item-link" href="${escHtml(s.productUrl)}" target="_blank" rel="noopener">보기↗</a>`
+                    : '';
+                return `<label class="shopping-item${selected}">
+                    <input type="radio" name="${radioName}" value="${s.rank}" ${checked} data-idx="${idx}" data-rank="${s.rank}">
+                    <div class="shopping-item-info">
+                        <div class="shopping-item-name">${escHtml(s.productName)}</div>
+                        <div class="shopping-item-meta">${escHtml(meta)}</div>
+                    </div>
+                    ${link}
+                </label>`;
+            }).join('') + '</div>';
+        } else {
+            shoppingHtml = '<div class="no-shopping">쇼핑 결과 없음</div>';
+        }
 
-        card.innerHTML = `
-            ${thumb}
-            <div class="product-info">
-                <p class="product-name">${escHtml(p.productName)}</p>
-                <p class="product-meta">${escHtml(meta)}</p>
-                ${linkHtml}
+        group.innerHTML = `
+            <div class="candidate-header">
+                <div>
+                    <p class="candidate-name">${escHtml(cr.candidate.name)}${brandText}</p>
+                    <span class="candidate-meta">${escHtml(cr.candidate.category || '')}</span>
+                </div>
+                <span class="candidate-confidence">${conf}</span>
             </div>
-            <div class="card-btns">
-                <button class="approve-btn card-approve" data-key="${key}">승인</button>
-                <button class="reject-btn card-reject"  data-key="${key}">거절</button>
+            ${shoppingHtml}
+            <div class="candidate-btns">
+                <button class="approve-btn" data-idx="${idx}">승인</button>
+                <button class="reject-btn" data-idx="${idx}">거절</button>
             </div>`;
 
-        productList.appendChild(card);
+        productList.appendChild(group);
     });
 
-    // 개별 카드 버튼
-    productList.querySelectorAll('.card-approve').forEach((btn) => {
-        btn.addEventListener('click', () => setDecision(btn.dataset.key, 'approved'));
+    // 승인/거절 버튼 이벤트
+    productList.querySelectorAll('.candidate-btns .approve-btn').forEach((btn) => {
+        btn.addEventListener('click', () => setCandidateDecision(Number(btn.dataset.idx), 'approved'));
     });
-    productList.querySelectorAll('.card-reject').forEach((btn) => {
-        btn.addEventListener('click', () => setDecision(btn.dataset.key, 'rejected'));
+    productList.querySelectorAll('.candidate-btns .reject-btn').forEach((btn) => {
+        btn.addEventListener('click', () => setCandidateDecision(Number(btn.dataset.idx), 'rejected'));
+    });
+
+    // 라디오 버튼 이벤트
+    productList.querySelectorAll('input[type="radio"]').forEach((radio) => {
+        radio.addEventListener('change', () => {
+            const idx = Number(radio.dataset.idx);
+            const rank = Number(radio.dataset.rank);
+            if (productDecisions[idx]) {
+                productDecisions[idx].selectedShoppingRank = rank;
+            }
+            // 선택 시각화 업데이트
+            const group = productList.querySelector(`[data-idx="${idx}"]`);
+            if (group) {
+                group.querySelectorAll('.shopping-item').forEach((item) => item.classList.remove('selected'));
+                radio.closest('.shopping-item').classList.add('selected');
+            }
+        });
     });
 }
 
-function setDecision(key, decision) {
-    productDecisions[key] = decision;
-    const card = productList.querySelector(`[data-key="${key}"]`);
-    if (card) {
-        card.className = 'product-card ' + decision;
+function setCandidateDecision(idx, decision) {
+    if (productDecisions[idx]) {
+        productDecisions[idx].decision = decision;
+    }
+    const group = productList.querySelector(`[data-idx="${idx}"]`);
+    if (group) {
+        group.className = 'candidate-group ' + decision;
     }
 }
 
 // ── 전체 승인/거절 ────────────────────────────────────
 approveAllBtn.addEventListener('click', () => {
-    Object.keys(productDecisions).forEach((k) => setDecision(k, 'approved'));
+    Object.keys(productDecisions).forEach((k) => setCandidateDecision(Number(k), 'approved'));
 });
 rejectAllBtn.addEventListener('click', () => {
-    Object.keys(productDecisions).forEach((k) => setDecision(k, 'rejected'));
+    Object.keys(productDecisions).forEach((k) => setCandidateDecision(Number(k), 'rejected'));
 });
 
 // ── 검토 제출 ─────────────────────────────────────────
@@ -283,8 +315,11 @@ submitReviewBtn.addEventListener('click', async () => {
     if (!currentTaskId) return;
 
     const approved = Object.entries(productDecisions)
-        .filter(([, v]) => v === 'approved')
-        .map(([k]) => Number(k));
+        .filter(([, v]) => v.decision === 'approved')
+        .map(([k, v]) => ({
+            candidateIndex: Number(k),
+            ...(v.selectedShoppingRank != null ? { shoppingRank: v.selectedShoppingRank } : {}),
+        }));
 
     const payload = {
         approved,

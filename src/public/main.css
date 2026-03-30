@@ -431,6 +431,99 @@ main {
   margin-bottom: 1rem;
 }
 
+/* ── Candidate group ────────────────────────────── */
+.candidate-group {
+  border: 2px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  transition: border-color .15s;
+}
+.candidate-group.approved { border-color: #22c55e; background: #f0fdf4; }
+.candidate-group.rejected { border-color: #ef4444; background: #fef2f2; }
+
+.candidate-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+.candidate-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0;
+}
+.candidate-meta {
+  font-size: 0.78rem;
+  color: #888;
+}
+.candidate-confidence {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.shopping-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+.shopping-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 0.4rem;
+  background: #f9fafb;
+  cursor: pointer;
+  transition: background .1s;
+}
+.shopping-item:hover { background: #f3f4f6; }
+.shopping-item.selected { background: #eff6ff; border: 1px solid #93c5fd; }
+
+.shopping-item input[type="radio"] {
+  accent-color: #2563eb;
+  flex-shrink: 0;
+}
+.shopping-item-info { flex: 1; min-width: 0; }
+.shopping-item-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.shopping-item-meta {
+  font-size: 0.75rem;
+  color: #888;
+}
+.shopping-item-link {
+  font-size: 0.75rem;
+  color: #FF0405;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.shopping-item-link:hover { text-decoration: underline; }
+
+.no-shopping {
+  font-size: 0.82rem;
+  color: #999;
+  padding: 0.6rem;
+  text-align: center;
+  background: #f9fafb;
+  border-radius: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.candidate-btns {
+  display: flex;
+  gap: 0.5rem;
+}
+
 /* ── Spinner ─────────────────────────────────────── */
 .spinner {
   display: inline-block;
