@@ -63,12 +63,21 @@ export interface VerifierDecision {
     }>;
 }
 
+export interface CandidateResult {
+    candidate: ProductCandidate;
+    shoppingResults: ShoppingSearchResult[];
+    evidence: ProductEvidence[];
+    confidence: number;
+    verifier?: VerifierDecision;
+}
+
 export interface ProductExtractionResult {
     status: 'READY_FOR_REVIEW' | 'NEEDS_REVIEW';
     recommendation: 'approve_candidate' | 'review_required';
     confidence: number;
     selectedProduct?: ProductCandidate;
     allCandidates: ProductCandidate[];
+    candidateResults?: CandidateResult[];
     vision: VisionProductResult;
     transcript?: TranscriptExtractionResult;
     transcriptCandidate?: ProductCandidate;
