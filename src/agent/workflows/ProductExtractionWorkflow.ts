@@ -42,9 +42,7 @@ interface ProductExtractionWorkflowDeps {
     transcriptTool?: TranscriptExtractTool;
     shoppingTool?: ShoppingSearchTool;
     provider?: Pick<GeminiProvider, 'generateObject'>;
-    verifier?: Partial<Pick<VerifierAgent, 'verify'>> & {
-        verifySingle?: (cr: CandidateResult) => Promise<import('./productTypes').VerifierDecision>;
-    };
+    verifier?: Pick<VerifierAgent, 'verify' | 'verifySingle'>;
     fewShotBuilder?: Pick<FewShotBuilder, 'buildForCategory'>;
     reviewThreshold?: number;
 }
@@ -393,11 +391,11 @@ export class ProductExtractionWorkflow implements AgentTool {
                     confidence: candidateConfidence,
                 };
 
-                // verifySingle은 선택적 호출 (Task 4에서 VerifierAgent에 추가 예정)
-                const verifierDecision = await this.deps.verifier?.verifySingle?.(cr);
-                if (verifierDecision) {
-                    cr.verifier = verifierDecision;
-                }
+                // 후보별 검증
+                const verifierInstance = this.deps.verifier ?? verifierAgent;
+                const verifierDecision = await verifierInstance.verifySingle(cr);
+                cr.verifier = verifierDecision;
+                cr.confidence = verifierDecision.adjustedConfidence;
 
                 return cr;
             })
