@@ -38,3 +38,85 @@ test('VisionProductTool returns more than 3 products when vision finds them', as
     assert.equal(result.products[0].name, 'Nike Air Force 1');
     assert.equal(result.products[4].name, 'White socks');
 });
+
+test('ProductExtractionWorkflow searches shopping for all candidates and builds candidateResults', async () => {
+    applyTestEnv();
+
+    const { ProductExtractionWorkflow } = require('../../dist/agent/workflows/ProductExtractionWorkflow.js');
+
+    const shoppingQueries = [];
+    const workflow = new ProductExtractionWorkflow({
+        visionTool: {
+            async identify() {
+                return {
+                    products: [
+                        { name: 'Nike Air Force 1', brand: 'Nike', category: 'shoes', confidence: 0.9, evidence: 'white sneakers', searchQuery: 'Nike Air Force 1 white', source: 'vision' },
+                        { name: 'Nike Shox', brand: 'Nike', category: 'shoes', confidence: 0.85, evidence: 'red sneakers', searchQuery: 'Nike Shox red', source: 'vision' },
+                        { name: 'Wide-leg pants', brand: null, category: 'pants', confidence: 0.7, evidence: 'grey pants', searchQuery: 'wide leg pants grey', source: 'vision' },
+                    ],
+                    sceneDescription: 'Person in multiple outfits',
+                    uncertainty: null,
+                    policyUsed: 'mini-default',
+                    escalated: false,
+                };
+            },
+        },
+        transcriptTool: {
+            async extract() {
+                return { text: '', source: 'unavailable', confidence: 0, warnings: ['no audio'] };
+            },
+        },
+        shoppingTool: {
+            async search(query) {
+                shoppingQueries.push(query);
+                return [
+                    { source: 'naver', productName: `${query} 상품1`, productUrl: 'https://example.com/1', price: 100000, reviewCount: 10, rank: 1 },
+                    { source: 'naver', productName: `${query} 상품2`, productUrl: 'https://example.com/2', price: 90000, reviewCount: 5, rank: 2 },
+                ];
+            },
+        },
+        verifier: {
+            async verifySingle(cr) {
+                return {
+                    status: 'READY_FOR_REVIEW',
+                    recommendation: 'approve_candidate',
+                    adjustedConfidence: cr.confidence,
+                    reasons: [],
+                    sourceScoreSnapshot: [],
+                };
+            },
+        },
+        fewShotBuilder: {
+            async buildForCategory() { return ''; },
+        },
+    });
+
+    const result = await workflow.execute({ context: {
+        sourceType: 'video',
+        channelCategory: 'fashion',
+        clipContext: { imageUrls: ['https://example.com/frame.jpg'] },
+    }});
+
+    // 모든 후보에 대해 쇼핑 검색이 실행되었는지
+    assert.equal(shoppingQueries.length, 3);
+    assert.ok(shoppingQueries.includes('Nike Air Force 1 white'));
+    assert.ok(shoppingQueries.includes('Nike Shox red'));
+    assert.ok(shoppingQueries.includes('wide leg pants grey'));
+
+    // candidateResults 배열이 올바르게 구성되었는지
+    assert.equal(result.candidateResults.length, 3);
+
+    assert.equal(result.candidateResults[0].candidate.name, 'Nike Air Force 1');
+    assert.equal(result.candidateResults[0].shoppingResults.length, 2);
+    assert.equal(result.candidateResults[0].shoppingResults[0].productName, 'Nike Air Force 1 white 상품1');
+
+    assert.equal(result.candidateResults[1].candidate.name, 'Nike Shox');
+    assert.equal(result.candidateResults[1].shoppingResults.length, 2);
+
+    assert.equal(result.candidateResults[2].candidate.name, 'Wide-leg pants');
+    assert.equal(result.candidateResults[2].shoppingResults.length, 2);
+
+    // 하위 호환: selectedProduct, shoppingResults, evidence는 candidateResults[0]과 동일
+    assert.equal(result.selectedProduct.name, 'Nike Air Force 1');
+    assert.deepEqual(result.shoppingResults, result.candidateResults[0].shoppingResults);
+});

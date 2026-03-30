@@ -8,6 +8,7 @@ import { GeminiProvider, geminiProvider } from '../providers/llm/GeminiProvider'
 import { VerifierAgent, verifierAgent } from '../verifier/VerifierAgent';
 import { FewShotBuilder, fewShotBuilder } from '../memory/FewShotBuilder';
 import {
+    CandidateResult,
     LegacyComparison,
     ProductCandidate,
     ProductEvidence,
@@ -41,7 +42,9 @@ interface ProductExtractionWorkflowDeps {
     transcriptTool?: TranscriptExtractTool;
     shoppingTool?: ShoppingSearchTool;
     provider?: Pick<GeminiProvider, 'generateObject'>;
-    verifier?: Pick<VerifierAgent, 'verify'>;
+    verifier?: Partial<Pick<VerifierAgent, 'verify'>> & {
+        verifySingle?: (cr: CandidateResult) => Promise<import('./productTypes').VerifierDecision>;
+    };
     fewShotBuilder?: Pick<FewShotBuilder, 'buildForCategory'>;
     reviewThreshold?: number;
 }
@@ -108,18 +111,19 @@ function buildLegacyComparison(legacyCandidates: string[], selectedProduct?: Pro
     };
 }
 
-function buildEvidence(
+function buildEvidenceForCandidate(
+    candidate: ProductCandidate,
     vision: VisionProductResult,
     transcript: TranscriptExtractionResult | undefined,
     transcriptCandidate: ProductCandidate | undefined,
     shoppingResults: ShoppingSearchResult[],
-    legacyComparison: LegacyComparison | undefined,
+    legacyComparison?: LegacyComparison,
 ): ProductEvidence[] {
     const evidence: ProductEvidence[] = [
         {
             sourceType: 'vision',
             summary: vision.sceneDescription || 'Vision analysis completed.',
-            confidence: vision.products[0]?.confidence,
+            confidence: candidate.confidence,
             metadata: {
                 policyUsed: vision.policyUsed,
                 escalated: vision.escalated,
@@ -256,20 +260,24 @@ export class ProductExtractionWorkflow implements AgentTool {
             });
         }
 
-        let selectedProduct = pickBestCandidate(vision.products);
+        // Transcript 보완 판단: 최고 confidence 기준
+        const topCandidate = vision.products.reduce(
+            (best, c) => (!best || c.confidence > best.confidence ? c : best),
+            null as ProductCandidate | null
+        );
         let transcript: TranscriptExtractionResult | undefined;
         let transcriptCandidate: ProductCandidate | undefined;
         let fallbackReason = vision.products.length ? undefined : 'vision_no_product_found';
 
-        if (!selectedProduct || selectedProduct.confidence < this.reviewThreshold) {
-            const reason = !selectedProduct
+        if (!topCandidate || topCandidate.confidence < this.reviewThreshold) {
+            const reason = !topCandidate
                 ? 'Vision에서 상품을 찾지 못함'
-                : `Vision confidence(${selectedProduct.confidence})가 임계값(${this.reviewThreshold}) 미만`;
+                : `Vision confidence(${topCandidate.confidence})가 임계값(${this.reviewThreshold}) 미만`;
 
             logger.info({
                 event: 'workflow_transcript_trigger',
                 reason,
-                visionConfidence: selectedProduct?.confidence ?? 0,
+                visionConfidence: topCandidate?.confidence ?? 0,
                 threshold: this.reviewThreshold,
             }, `🎙️ [Transcript] 자막 추출 시작 — 사유: ${reason}`);
 
@@ -290,21 +298,20 @@ export class ProductExtractionWorkflow implements AgentTool {
             }, `🎙️ [Transcript] 완료 (${Date.now() - transcriptStart}ms) — 소스: ${transcript.source} | confidence: ${transcript.confidence} | 텍스트 길이: ${transcript.text?.length ?? 0}자`);
 
             if (transcript.text) {
-                transcriptCandidate = await this.extractProductFromTranscript(transcript.text, context, selectedProduct);
+                transcriptCandidate = await this.extractProductFromTranscript(transcript.text, context, topCandidate ?? undefined);
 
                 logger.info({
                     event: 'workflow_transcript_candidate',
                     name: transcriptCandidate.name,
                     confidence: transcriptCandidate.confidence,
-                    visionConfidence: selectedProduct?.confidence ?? 0,
-                    promoted: !selectedProduct || transcriptCandidate.confidence >= (selectedProduct?.confidence ?? 0),
-                }, `   📦 [Transcript 후보] ${transcriptCandidate.name} — confidence: ${transcriptCandidate.confidence}${!selectedProduct || transcriptCandidate.confidence >= (selectedProduct?.confidence ?? 0) ? ' ⬆️ 승격됨' : ''}`);
+                    visionConfidence: topCandidate?.confidence ?? 0,
+                    promoted: !topCandidate || transcriptCandidate.confidence >= (topCandidate?.confidence ?? 0),
+                }, `   📦 [Transcript 후보] ${transcriptCandidate.name} — confidence: ${transcriptCandidate.confidence}${!topCandidate || transcriptCandidate.confidence >= (topCandidate?.confidence ?? 0) ? ' ⬆️ 승격됨' : ''}`);
 
-                if (!selectedProduct || transcriptCandidate.confidence >= selectedProduct.confidence) {
-                    selectedProduct = transcriptCandidate;
+                if (!topCandidate || transcriptCandidate.confidence >= topCandidate.confidence) {
                     fallbackReason = 'transcript_promoted_candidate';
                 }
-            } else if (!selectedProduct) {
+            } else if (!topCandidate) {
                 fallbackReason = transcript.warnings[0] ?? 'transcript_unavailable';
                 logger.warn({
                     event: 'workflow_transcript_unavailable',
@@ -314,57 +321,98 @@ export class ProductExtractionWorkflow implements AgentTool {
         } else {
             logger.info({
                 event: 'workflow_transcript_skip',
-                selectedProduct: selectedProduct.name,
-                confidence: selectedProduct.confidence,
+                selectedProduct: topCandidate!.name,
+                confidence: topCandidate!.confidence,
                 threshold: this.reviewThreshold,
-            }, `⏭️ [Transcript] 생략 — Vision confidence(${selectedProduct.confidence}) ≥ 임계값(${this.reviewThreshold})`);
+            }, `⏭️ [Transcript] 생략 — Vision confidence(${topCandidate!.confidence}) ≥ 임계값(${this.reviewThreshold})`);
         }
 
-        let shoppingResults: ShoppingSearchResult[] = [];
-        if (selectedProduct?.searchQuery || selectedProduct?.name) {
-            const searchQuery = selectedProduct.searchQuery || selectedProduct.name;
-            logger.info({
-                event: 'workflow_shopping_start',
-                query: searchQuery,
-            }, `🛒 [Shopping] 쇼핑 검색 시작 — 검색어: "${searchQuery}"`);
-
-            const shoppingStart = Date.now();
-            try {
-                shoppingResults = await (this.deps.shoppingTool ?? new ShoppingSearchTool()).search(
-                    searchQuery,
-                    5,
-                );
-
-                logger.info({
-                    event: 'workflow_shopping_done',
-                    elapsedMs: Date.now() - shoppingStart,
-                    resultCount: shoppingResults.length,
-                    source: shoppingResults[0]?.source ?? 'none',
-                    topResult: shoppingResults[0]?.productName,
-                    topPrice: shoppingResults[0]?.price,
-                }, `🛒 [Shopping] 완료 (${Date.now() - shoppingStart}ms) — ${shoppingResults.length}개 결과 | 소스: ${shoppingResults[0]?.source ?? 'none'}${shoppingResults[0] ? ` | 1위: ${shoppingResults[0].productName}` : ''}`);
-            } catch (err) {
-                fallbackReason = err instanceof Error ? err.message : String(err);
-                logger.error({
-                    event: 'workflow_shopping_failed',
-                    elapsedMs: Date.now() - shoppingStart,
-                    error: fallbackReason,
-                }, `❌ [Shopping] 검색 실패 — ${fallbackReason}`);
-            }
-        } else {
-            logger.warn({
-                event: 'workflow_shopping_skip',
-                reason: 'no_selected_product',
-            }, `⏭️ [Shopping] 생략 — 검색할 상품이 없음`);
-        }
-
+        // 후보 확정
         const allCandidates = mergeCandidates([
             ...vision.products,
             transcriptCandidate,
         ]);
+
+        // 후보별 병렬 쇼핑 검색 (confidence >= 0.5인 후보만)
+        const eligibleCandidates = allCandidates.filter(c => c.confidence >= 0.5);
+
+        if (eligibleCandidates.length === 0) {
+            logger.warn({
+                event: 'workflow_shopping_skip',
+                reason: 'no_eligible_candidates',
+            }, `⏭️ [Shopping] 생략 — 검색할 상품이 없음`);
+        }
+
+        const shoppingStart = Date.now();
+        const candidateResults: CandidateResult[] = await Promise.all(
+            eligibleCandidates.map(async (candidate) => {
+                let candidateShoppingResults: ShoppingSearchResult[] = [];
+                const searchQuery = candidate.searchQuery || candidate.name;
+
+                logger.info({
+                    event: 'workflow_shopping_start',
+                    query: searchQuery,
+                }, `🛒 [Shopping] 쇼핑 검색 시작 — 검색어: "${searchQuery}"`);
+
+                try {
+                    candidateShoppingResults = await (this.deps.shoppingTool ?? new ShoppingSearchTool()).search(
+                        searchQuery,
+                        5,
+                    );
+
+                    logger.info({
+                        event: 'workflow_shopping_done',
+                        elapsedMs: Date.now() - shoppingStart,
+                        query: searchQuery,
+                        resultCount: candidateShoppingResults.length,
+                        source: candidateShoppingResults[0]?.source ?? 'none',
+                        topResult: candidateShoppingResults[0]?.productName,
+                        topPrice: candidateShoppingResults[0]?.price,
+                    }, `🛒 [Shopping] 완료 — "${searchQuery}" ${candidateShoppingResults.length}개 결과 | 소스: ${candidateShoppingResults[0]?.source ?? 'none'}${candidateShoppingResults[0] ? ` | 1위: ${candidateShoppingResults[0].productName}` : ''}`);
+                } catch (err) {
+                    const errMsg = err instanceof Error ? err.message : String(err);
+                    logger.error({
+                        event: 'workflow_shopping_failed',
+                        query: searchQuery,
+                        error: errMsg,
+                    }, `❌ [Shopping] 검색 실패 — "${searchQuery}": ${errMsg}`);
+                }
+
+                const legacyCompForCandidate = buildLegacyComparison(context.legacyCandidates ?? [], candidate);
+                const candidateEvidence = buildEvidenceForCandidate(
+                    candidate,
+                    vision,
+                    transcript,
+                    transcriptCandidate,
+                    candidateShoppingResults,
+                    legacyCompForCandidate,
+                );
+                const candidateConfidence = calculateConfidence(candidate, candidateShoppingResults, transcriptCandidate);
+
+                const cr: CandidateResult = {
+                    candidate,
+                    shoppingResults: candidateShoppingResults,
+                    evidence: candidateEvidence,
+                    confidence: candidateConfidence,
+                };
+
+                // verifySingle은 선택적 호출 (Task 4에서 VerifierAgent에 추가 예정)
+                const verifierDecision = await this.deps.verifier?.verifySingle?.(cr);
+                if (verifierDecision) {
+                    cr.verifier = verifierDecision;
+                }
+
+                return cr;
+            })
+        );
+
+        // 하위 호환 필드: candidateResults[0]에서 복사
+        const topResult = candidateResults[0];
+        const selectedProduct = topResult?.candidate;
+        const shoppingResults = topResult?.shoppingResults ?? [];
         const legacyComparison = buildLegacyComparison(context.legacyCandidates ?? [], selectedProduct);
-        const evidence = buildEvidence(vision, transcript, transcriptCandidate, shoppingResults, legacyComparison);
-        const confidence = calculateConfidence(selectedProduct, shoppingResults, transcriptCandidate);
+        const evidence = topResult?.evidence ?? [];
+        const confidence = topResult?.confidence ?? 0;
 
         logger.info({
             event: 'workflow_confidence_calculated',
@@ -375,6 +423,7 @@ export class ProductExtractionWorkflow implements AgentTool {
             hasTranscript: Boolean(transcriptCandidate),
             hasShoppingResults: shoppingResults.length > 0,
             candidateCount: allCandidates.length,
+            eligibleCount: eligibleCandidates.length,
             evidenceCount: evidence.length,
         }, `📐 [Confidence] 산출 — base: ${selectedProduct?.confidence ?? 0} → final: ${confidence} | 상품: ${selectedProduct?.name ?? 'none'} (${selectedProduct?.source ?? 'none'}) | evidence ${evidence.length}개`);
 
@@ -397,6 +446,7 @@ export class ProductExtractionWorkflow implements AgentTool {
             confidence,
             selectedProduct,
             allCandidates,
+            candidateResults,
             vision,
             transcript,
             transcriptCandidate,
@@ -407,31 +457,37 @@ export class ProductExtractionWorkflow implements AgentTool {
             fallbackReason,
         };
 
-        logger.info({
-            event: 'workflow_verifier_start',
-            preVerifiedConfidence: confidence,
-        }, `🔎 [Verifier] 검증 시작 — pre-verified confidence: ${confidence}`);
+        // verifier.verify()가 있는 경우에만 전체 결과 검증 실행 (하위 호환)
+        const verifierInstance = this.deps.verifier ?? verifierAgent;
+        if (typeof verifierInstance.verify === 'function') {
+            logger.info({
+                event: 'workflow_verifier_start',
+                preVerifiedConfidence: confidence,
+            }, `🔎 [Verifier] 검증 시작 — pre-verified confidence: ${confidence}`);
 
-        const verification = await (this.deps.verifier ?? verifierAgent).verify(preVerifiedResult);
+            const verification = await verifierInstance.verify(preVerifiedResult);
 
-        logger.info({
-            event: 'workflow_verifier_done',
-            preConfidence: confidence,
-            adjustedConfidence: verification.adjustedConfidence,
-            delta: Number((verification.adjustedConfidence - confidence).toFixed(2)),
-            status: verification.status,
-            recommendation: verification.recommendation,
-            reasons: verification.reasons,
-            sourceScoreSnapshot: verification.sourceScoreSnapshot,
-        }, `🔎 [Verifier] 완료 — confidence: ${confidence} → ${verification.adjustedConfidence} (${verification.adjustedConfidence >= confidence ? '+' : ''}${(verification.adjustedConfidence - confidence).toFixed(2)}) | 상태: ${verification.status}${verification.reasons.length ? ` | 사유: ${verification.reasons.join(', ')}` : ''}`);
+            logger.info({
+                event: 'workflow_verifier_done',
+                preConfidence: confidence,
+                adjustedConfidence: verification.adjustedConfidence,
+                delta: Number((verification.adjustedConfidence - confidence).toFixed(2)),
+                status: verification.status,
+                recommendation: verification.recommendation,
+                reasons: verification.reasons,
+                sourceScoreSnapshot: verification.sourceScoreSnapshot,
+            }, `🔎 [Verifier] 완료 — confidence: ${confidence} → ${verification.adjustedConfidence} (${verification.adjustedConfidence >= confidence ? '+' : ''}${(verification.adjustedConfidence - confidence).toFixed(2)}) | 상태: ${verification.status}${verification.reasons.length ? ` | 사유: ${verification.reasons.join(', ')}` : ''}`);
 
-        return {
-            ...preVerifiedResult,
-            status: verification.status,
-            recommendation: verification.recommendation,
-            confidence: verification.adjustedConfidence,
-            verifier: verification,
-        };
+            return {
+                ...preVerifiedResult,
+                status: verification.status,
+                recommendation: verification.recommendation,
+                confidence: verification.adjustedConfidence,
+                verifier: verification,
+            };
+        }
+
+        return preVerifiedResult;
     }
 
     private async extractProductFromTranscript(
