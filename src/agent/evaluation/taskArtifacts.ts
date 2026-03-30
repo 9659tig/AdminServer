@@ -37,6 +37,7 @@ export function buildTaskEvidenceView(details: AgentTaskDetails): TaskEvidenceVi
         extraction,
         selectedProductName: extraction?.selectedProduct?.name,
         confidence: extraction?.confidence,
+        candidateResults: extraction?.candidateResults,
     };
 }
 

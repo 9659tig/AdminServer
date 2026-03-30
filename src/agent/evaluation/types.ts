@@ -1,5 +1,5 @@
 import { AgentTaskDetails, AgentTaskInput, ReviewPayload } from '../core/types';
-import { ProductEvidence, ProductExtractionResult } from '../workflows/productTypes';
+import { CandidateResult, ProductEvidence, ProductExtractionResult } from '../workflows/productTypes';
 
 export interface TaskEvidenceView {
     taskId: string;
@@ -7,6 +7,7 @@ export interface TaskEvidenceView {
     extraction?: ProductExtractionResult;
     selectedProductName?: string;
     confidence?: number;
+    candidateResults?: CandidateResult[];
 }
 
 export interface GoldSetExample {
