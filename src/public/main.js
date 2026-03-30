@@ -4,7 +4,7 @@
 let currentFile = null;
 let currentTaskId = null;
 let pollTimer = null;
-// 상품별 승인 상태: { [rank]: 'approved' | 'rejected' | 'pending' }
+// 후보별 승인 상태: { [candidateIndex]: { decision: 'approved' | 'rejected' | 'pending', selectedShoppingRank: number | null } }
 let productDecisions = {};
 
 // ── DOM 참조 ──────────────────────────────────────────
