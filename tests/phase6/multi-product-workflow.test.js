@@ -120,3 +120,56 @@ test('ProductExtractionWorkflow searches shopping for all candidates and builds 
     assert.equal(result.selectedProduct.name, 'Nike Air Force 1');
     assert.deepEqual(result.shoppingResults, result.candidateResults[0].shoppingResults);
 });
+
+test('Candidates with confidence < 0.5 are excluded from shopping search', async () => {
+    applyTestEnv();
+
+    const { ProductExtractionWorkflow } = require('../../dist/agent/workflows/ProductExtractionWorkflow.js');
+
+    const shoppingQueries = [];
+    const workflow = new ProductExtractionWorkflow({
+        visionTool: {
+            async identify() {
+                return {
+                    products: [
+                        { name: 'Clear product', brand: 'Brand', category: 'cat', confidence: 0.8, evidence: 'visible', searchQuery: 'clear query', source: 'vision' },
+                        { name: 'Unclear product', brand: null, category: 'cat', confidence: 0.3, evidence: 'barely visible', searchQuery: 'unclear query', source: 'vision' },
+                    ],
+                    sceneDescription: 'scene',
+                    uncertainty: null,
+                    policyUsed: 'mini-default',
+                    escalated: false,
+                };
+            },
+        },
+        transcriptTool: {
+            async extract() { return { text: '', source: 'unavailable', confidence: 0, warnings: [] }; },
+        },
+        shoppingTool: {
+            async search(query) {
+                shoppingQueries.push(query);
+                return [{ source: 'naver', productName: query, productUrl: 'https://x', rank: 1, reviewCount: 0 }];
+            },
+        },
+        verifier: {
+            async verifySingle(cr) {
+                return { status: 'READY_FOR_REVIEW', recommendation: 'approve_candidate', adjustedConfidence: cr.confidence, reasons: [], sourceScoreSnapshot: [] };
+            },
+        },
+        fewShotBuilder: { async buildForCategory() { return ''; } },
+    });
+
+    const result = await workflow.execute({ context: {
+        sourceType: 'video',
+        channelCategory: 'test',
+        clipContext: { imageUrls: ['https://example.com/f.jpg'] },
+    }});
+
+    // confidence 0.3인 후보는 쇼핑 검색 제외
+    assert.equal(shoppingQueries.length, 1);
+    assert.equal(shoppingQueries[0], 'clear query');
+
+    // candidateResults에는 confidence >= 0.5인 후보만 포함
+    assert.equal(result.candidateResults.length, 1);
+    assert.equal(result.candidateResults[0].candidate.name, 'Clear product');
+});
