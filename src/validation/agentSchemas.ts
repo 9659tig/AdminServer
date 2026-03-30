@@ -66,8 +66,13 @@ export const retryTaskSchema = z.object({
     fromStepId: z.string().trim().optional(),
 });
 
+const reviewApprovalSchema = z.object({
+    candidateIndex: z.number().int().min(0),
+    shoppingRank: z.number().int().min(1).optional(),
+});
+
 export const reviewTaskSchema = z.object({
-    approved: z.array(z.number().int()).default([]),
+    approved: z.array(reviewApprovalSchema).default([]),
     comment: z.string().trim().optional(),
 });
 

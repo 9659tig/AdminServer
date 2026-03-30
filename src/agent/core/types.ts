@@ -95,8 +95,14 @@ export interface AgentTaskDetails {
     feedback: TaskFeedbackRecord[];
 }
 
+export interface ReviewApproval {
+    candidateIndex: number;
+    shoppingRank?: number;
+}
+
 export interface ReviewPayload {
     action: 'approve' | 'edit' | 'reject';
+    approved?: ReviewApproval[];
     editedFields?: Record<string, unknown>;
     reason?: string;
 }
